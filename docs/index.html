@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>EpiBins — Fundamental Knowledge Bins</title>
+<meta name="author" content="Hemanth Gudaparthi" />
+<meta name="description" content="EpiBins — video learning annotation app by Hemanth Gudaparthi. Auto-detect keywords, surface Wikipedia/arXiv/LLM explanations, track knowledge gaps in 100 Fundamental Knowledge Bins." />
+<meta property="og:title" content="EpiBins — Fundamental Knowledge Bins" />
+<meta property="og:description" content="Watch any video, detect key concepts automatically, and close your knowledge gaps — one bin at a time. Built by Hemanth Gudaparthi." />
+<meta property="og:type" content="website" />
+<title>EpiBins — Fundamental Knowledge Bins · Hemanth Gudaparthi</title>
 <style>
 /* ── Variables ─────────────────────────────────────────────────────────────── */
 :root {
@@ -42,7 +47,7 @@ kbd { background:var(--surface2); border:1px solid var(--border2); border-radius
 /* ── App shell ─────────────────────────────────────────────────────────────── */
 #app {
   display:flex; flex-direction:column; height:100%;
-  padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+  padding-top:var(--safe-top); padding-bottom:calc(var(--safe-bottom) + 30px);
 }
 
 /* ── Top bar ───────────────────────────────────────────────────────────────── */
@@ -54,8 +59,12 @@ kbd { background:var(--surface2); border:1px solid var(--border2); border-radius
   background:var(--surface); border-bottom:1px solid var(--border);
   flex-shrink:0; min-height:52px;
 }
+.logo-group { display:flex; flex-direction:column; gap:1px; line-height:1; flex-shrink:0; }
 .logo { font-weight:800; font-size:19px; color:var(--accent); letter-spacing:-0.5px; white-space:nowrap; }
 .logo sup { font-size:10px; font-weight:600; color:var(--text-sub); letter-spacing:0; vertical-align:super; }
+.logo-byline { font-size:10px; color:var(--text-dim); white-space:nowrap; }
+.logo-byline a { color:var(--text-sub); text-decoration:none; }
+.logo-byline a:hover { color:var(--accent); }
 .session-title {
   flex:1; font-size:13px; color:var(--text-sub);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -393,7 +402,10 @@ iframe.video-el { height:42vh; }
 
   <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
   <header class="topbar">
-    <span class="logo">EpiBins<sup>β</sup></span>
+    <div class="logo-group">
+      <span class="logo">EpiBins<sup>β</sup></span>
+      <span class="logo-byline">by <a href="https://github.com/HemanthGudaparthi" target="_blank" rel="noreferrer">Hemanth Gudaparthi</a></span>
+    </div>
     <span class="session-title" id="sessionTitle">No video loaded</span>
     <div class="topbar-actions">
       <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Video</span></button>
@@ -581,6 +593,27 @@ iframe.video-el { height:42vh; }
 </div>
 
 <input type="file" id="hiddenFileInput" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer id="siteFooter" style="
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(15,15,19,0.92); backdrop-filter:blur(8px);
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 18px; font-size:11px; color:#55556a;
+  z-index:50; pointer-events:none;
+">
+  <span>
+    <strong style="color:#888899">EpiBins</strong> &nbsp;·&nbsp;
+    Built by
+    <a href="https://github.com/HemanthGudaparthi" target="_blank" rel="noreferrer"
+       style="color:#7c5cff;text-decoration:none;pointer-events:all">Hemanth Gudaparthi</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/HemanthGudaparthi/EpiBins" target="_blank" rel="noreferrer"
+       style="color:#55556a;text-decoration:none;pointer-events:all">View source ↗</a>
+  </span>
+  <span style="color:#3a3a50">Open-source · Free · Private · On-device AI</span>
+</footer>
 
 <script>
 'use strict';
