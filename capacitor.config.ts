@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId:    "com.hemanthgudaparthi.epibins",
-  appName:  "EpiBins",
+  appId:    "com.hemanthgudaparthi.foundationgaps",
+  appName:  "FoundationGaps",
   webDir:   "dist",
   server: {
     // Use this during dev with `npm run dev` + `npx cap run ios --livereload`

@@ -22,15 +22,15 @@ export class WebPlatform implements Platform {
   }
 
   async secureSet(key: string, value: string): Promise<void> {
-    localStorage.setItem(`epibins:${key}`, value);
+    localStorage.setItem(`foundationgaps:${key}`, value);
   }
 
   async secureGet(key: string): Promise<string | null> {
-    return localStorage.getItem(`epibins:${key}`);
+    return localStorage.getItem(`foundationgaps:${key}`);
   }
 
   async secureDel(key: string): Promise<void> {
-    localStorage.removeItem(`epibins:${key}`);
+    localStorage.removeItem(`foundationgaps:${key}`);
   }
 
   async openDatabase(_name: string): Promise<DatabaseHandle> {

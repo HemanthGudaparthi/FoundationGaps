@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="author" content="Hemanth Gudaparthi" />
-<meta name="description" content="EpiBins — video learning annotation app by Hemanth Gudaparthi. Auto-detect keywords, surface Wikipedia/arXiv/LLM explanations, track knowledge gaps in 100 Fundamental Knowledge Bins." />
-<meta property="og:title" content="EpiBins — Fundamental Knowledge Bins" />
-<meta property="og:description" content="Watch any video, detect key concepts automatically, and close your knowledge gaps — one bin at a time. Built by Hemanth Gudaparthi." />
+<meta name="description" content="FoundationGaps — video learning app by Hemanth Gudaparthi. Auto-detect keywords, surface Wikipedia/arXiv/LLM explanations, and close the gaps in your foundation — one concept at a time." />
+<meta property="og:title" content="FoundationGaps — Close the Gaps in Your Foundation" />
+<meta property="og:description" content="Watch any video, surface the concepts you don't yet own, and close every gap in your foundation — one at a time. Built by Hemanth Gudaparthi." />
 <meta property="og:type" content="website" />
-<title>EpiBins — Fundamental Knowledge Bins · Hemanth Gudaparthi</title>
+<title>FoundationGaps — Close the Gaps in Your Foundation · Hemanth Gudaparthi</title>
 <style>
 /* ── Variables ─────────────────────────────────────────────────────────────── */
 :root {
@@ -420,7 +420,7 @@ iframe.video-el { height:42vh; }
   <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
   <header class="topbar">
     <div class="logo-group" id="btnHome" role="button" tabindex="0" title="Home — start a new session" aria-label="Home">
-      <span class="logo">EpiBins<sup>β</sup></span>
+      <span class="logo">FoundationGaps<sup>β</sup></span>
       <span class="logo-byline">by <a href="https://github.com/HemanthGudaparthi" target="_blank" rel="noreferrer">Hemanth Gudaparthi</a></span>
     </div>
     <span class="session-title" id="sessionTitle">No video loaded</span>
@@ -443,7 +443,7 @@ iframe.video-el { height:42vh; }
 
         <!-- How to use strip -->
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-          <p style="font-size:13px;font-weight:700;color:var(--text)">Three ways to use EpiBins</p>
+          <p style="font-size:13px;font-weight:700;color:var(--text)">Three ways to use FoundationGaps</p>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
               <span style="font-size:16px">🌐</span>
@@ -696,12 +696,12 @@ iframe.video-el { height:42vh; }
   z-index:50; pointer-events:none;
 ">
   <span>
-    <strong style="color:#888899">EpiBins</strong> &nbsp;·&nbsp;
+    <strong style="color:#888899">FoundationGaps</strong> &nbsp;·&nbsp;
     Built by
     <a href="https://github.com/HemanthGudaparthi" target="_blank" rel="noreferrer"
        style="color:#7c5cff;text-decoration:none;pointer-events:all">Hemanth Gudaparthi</a>
     &nbsp;·&nbsp;
-    <a href="https://github.com/HemanthGudaparthi/EpiBins" target="_blank" rel="noreferrer"
+    <a href="https://github.com/HemanthGudaparthi/FoundationGaps" target="_blank" rel="noreferrer"
        style="color:#55556a;text-decoration:none;pointer-events:all">View source ↗</a>
   </span>
   <span style="color:#3a3a50">Open-source · Free · Private · On-device AI</span>
@@ -1086,7 +1086,7 @@ function renderNotes() {
 function exportMd() {
   const filled=S.bins.filter(b=>b.state==='filled').length;
   const lines=[
-    `# ${S.sessionTitle} — EpiBins Knowledge Map`,
+    `# ${S.sessionTitle} — FoundationGaps Knowledge Map`,
     ``,
     `## Knowledge Bins (${filled}/${S.bins.length} filled)`,
     ``,
@@ -1099,7 +1099,7 @@ function exportMd() {
   const blob=new Blob([lines],{type:'text/markdown'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=S.sessionTitle.replace(/[^a-z0-9]/gi,'-')+'-epibins.md'; a.click();
+  a.href=url; a.download=S.sessionTitle.replace(/[^a-z0-9]/gi,'-')+'-foundationgaps.md'; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -1226,9 +1226,9 @@ function resolvedBaseUrl() {
 }
 
 function loadSettings() {
-  const key     = localStorage.getItem('epibins:key')??'';
-  const model   = localStorage.getItem('epibins:model')?? 'gpt-4o-mini';
-  const baseUrl = localStorage.getItem('epibins:baseUrl')?? 'https://api.openai.com/v1';
+  const key     = localStorage.getItem('foundationgaps:key')??'';
+  const model   = localStorage.getItem('foundationgaps:model')?? 'gpt-4o-mini';
+  const baseUrl = localStorage.getItem('foundationgaps:baseUrl')?? 'https://api.openai.com/v1';
   $('settingsKey').value   = key;
   $('settingsModel').value = model;
   // Match preset
@@ -1247,9 +1247,9 @@ function saveSettings() {
   const key     = $('settingsKey').value.trim();
   const model   = $('settingsModel').value.trim()||'gpt-4o-mini';
   const baseUrl = resolvedBaseUrl();
-  localStorage.setItem('epibins:key',key);
-  localStorage.setItem('epibins:model',model);
-  localStorage.setItem('epibins:baseUrl',baseUrl);
+  localStorage.setItem('foundationgaps:key',key);
+  localStorage.setItem('foundationgaps:model',model);
+  localStorage.setItem('foundationgaps:baseUrl',baseUrl);
   // Ollama works without a key; others need one
   const isOllama = baseUrl.includes('localhost')||baseUrl.includes('127.0.0.1');
   S.llmConfig = (key||isOllama) ? {apiKey:key,baseUrl,model} : null;
@@ -1358,7 +1358,7 @@ $('btnDownloadSelf').addEventListener('click',()=>{
   const blob=new Blob(['<!DOCTYPE html>\n'+html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download='epibins.html'; a.click();
+  a.href=url; a.download='foundationgaps.html'; a.click();
   URL.revokeObjectURL(url);
 });
 

@@ -1,5 +1,5 @@
 /**
- * EpiBins — root application component.
+ * FoundationGaps — root application component.
  *
  * Data flow:
  *   VideoLoader → VideoSource
@@ -163,7 +163,7 @@ export default function App() {
   // ── Export ─────────────────────────────────────────────────────────────────
   const handleExport = useCallback(async () => {
     const md = [
-      `# ${sessionTitle} — EpiBins Knowledge Map`,
+      `# ${sessionTitle} — FoundationGaps Knowledge Map`,
       ``,
       `## Knowledge Bins (${filledCount}/${bins.length} filled)`,
       ``,
@@ -181,7 +181,7 @@ export default function App() {
     ].join("\n");
 
     const p = await getPlatform();
-    await p.shareText(`${sessionTitle}-epibins.md`, md);
+    await p.shareText(`${sessionTitle}-foundationgaps.md`, md);
   }, [sessionTitle, filledCount, bins.length, binNotes, notes]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ export default function App() {
 
       {/* ── Top bar ────────────────────────────────────────────────────────── */}
       <header className="epibins-topbar">
-        <span className="epibins-logo">EpiBins</span>
+        <span className="epibins-logo">FoundationGaps</span>
         <span className="epibins-session">{sessionTitle}</span>
         <div className="epibins-topbar-actions">
           {source && (

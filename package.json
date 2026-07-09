@@ -1,7 +1,7 @@
 {
-  "name": "epibins",
+  "name": "foundationgaps",
   "version": "0.1.0-beta.0",
-  "description": "EpiBins — Fundamental Knowledge Bins for video annotation and learning",
+  "description": "FoundationGaps — surface the gaps in your foundation and close them, one concept at a time",
   "author": "Hemanth Gudaparthi",
   "license": "MIT",
   "workspaces": [

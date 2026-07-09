@@ -82,7 +82,7 @@ export class CapacitorPlatform implements Platform {
     const { Share } = await import("@capacitor/share");
     const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
     // Write to temp file then share
-    const path = `epibins_export_${Date.now()}.md`;
+    const path = `foundationgaps_export_${Date.now()}.md`;
     await Filesystem.writeFile({ path, data: content, directory: Directory.Cache, encoding: Encoding.UTF8 });
     const { uri } = await Filesystem.getUri({ path, directory: Directory.Cache });
     await Share.share({ title: filename, url: uri });
