@@ -21,18 +21,16 @@ echo ""
 log "Checking HTML file exists and is non-empty..."
 [ -s docs/index.html ] && ok "docs/index.html OK" || { err "docs/index.html missing or empty"; exit 1; }
 
-log "Checking for JavaScript syntax errors (via Node)..."
-node --input-type=module <<'EOF' 2>&1 && ok "No obvious JS parse issues" || { err "JS parse check failed"; exit 1; }
-import { readFileSync } from 'fs';
-const html = readFileSync('docs/index.html', 'utf8');
-const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/g);
-if (!scriptMatch) throw new Error('No script blocks found');
-// Check key functions exist
-const required = ['showLibrary','saveCurrentSession','focusNoteEditor','setSpeed','fetchArxiv','showReport'];
-const missing = required.filter(fn => !html.includes(`function ${fn}`));
-if (missing.length) throw new Error('Missing functions: ' + missing.join(', '));
-console.error('All required functions found');
-EOF
+log "Checking required functions exist in HTML..."
+REQUIRED=(showLibrary saveCurrentSession focusNoteEditor setSpeed fetchArxiv showReport)
+MISSING=()
+for fn in "${REQUIRED[@]}"; do
+  grep -q "function ${fn}" docs/index.html || MISSING+=("$fn")
+done
+if [ ${#MISSING[@]} -gt 0 ]; then
+  err "Missing functions: ${MISSING[*]}"; exit 1
+fi
+ok "All required functions present"
 
 log "Checking no duplicate function definitions..."
 DUPES=$(grep -oP 'function \w+' docs/index.html | sort | uniq -d)

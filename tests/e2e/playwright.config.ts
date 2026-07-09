@@ -13,11 +13,11 @@ export default defineConfig({
     ['list'],
     ['html', { open: 'never', outputFolder: 'tests/report' }],
   ],
-  // Bring up the docs server before tests run
+  // Serve docs/ using a pure-Node static server (no Python dependency)
   webServer: {
-    command: 'python3 -m http.server 8765 --directory docs',
+    command: 'npx serve docs --listen 8765 --no-clipboard',
     url: 'http://localhost:8765',
     reuseExistingServer: !process.env.CI,
-    timeout: 10_000,
+    timeout: 15_000,
   },
 });
