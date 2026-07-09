@@ -1716,6 +1716,7 @@ $('ytInputInline').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube(
 // Demo transcript — show no-video bar so user can still add a video
 $('btnDemoTranscript').addEventListener('click',()=>{
   S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
+  initSession(DEMO_TITLE);
   hide('videoLoader');
   // Show the no-video bar so they can load a video at any time
   show('noVideoBar');
@@ -1723,6 +1724,9 @@ $('btnDemoTranscript').addEventListener('click',()=>{
 });
 
 // Bin prompt
+$('bpArea').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();dismissBinPrompt();}
+});
 $('bpArea').addEventListener('input',()=>{
   const l=$('bpArea').value.trim().length;
   $('bpFill').disabled=l<20;
