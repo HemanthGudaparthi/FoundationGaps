@@ -1284,7 +1284,7 @@ function handleFile(file) {
   activateVideoElement();
   hide('videoLoader');
   // Re-attach time listeners (safe to add multiple — only fires from active source)
-  vid.addEventListener('timeupdate', ()=>{ S.currentMs=Math.round(vid.currentTime*1000); tick(); });
+  vid.addEventListener('timeupdate', ()=>{ S.currentMs=Math.round(vid.currentTime*1000); onVideoTick(); });
   vid.addEventListener('durationchange',()=>{ S.durationMs=Math.round(vid.duration*1000); renderPips(); });
   // If already transcribed (e.g. user adds video after loading demo), skip re-transcribe
   if (!S.transcribed) simulateProgress(()=>loadContent('on-device Whisper'));
@@ -1350,7 +1350,7 @@ function updateSticky() {
 
 /* ── Per-frame tick (for local video) ───────────────────────────────────── */
 
-function tick() { updateActiveSegment(); updateSticky(); }
+function onVideoTick() { updateActiveSegment(); updateSticky(); }
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
 
