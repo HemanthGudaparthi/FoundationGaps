@@ -59,12 +59,29 @@ kbd { background:var(--surface2); border:1px solid var(--border2); border-radius
   background:var(--surface); border-bottom:1px solid var(--border);
   flex-shrink:0; min-height:52px;
 }
-.logo-group { display:flex; flex-direction:column; gap:1px; line-height:1; flex-shrink:0; }
+.logo-group {
+  display:flex; flex-direction:column; gap:1px; line-height:1; flex-shrink:0;
+  cursor:pointer; border-radius:6px; padding:3px 5px; margin:-3px -5px;
+  transition:background .15s;
+  text-decoration:none; color:inherit;
+}
+.logo-group:hover { background:rgba(124,92,255,.1); }
 .logo { font-weight:800; font-size:19px; color:var(--accent); letter-spacing:-0.5px; white-space:nowrap; }
 .logo sup { font-size:10px; font-weight:600; color:var(--text-sub); letter-spacing:0; vertical-align:super; }
 .logo-byline { font-size:10px; color:var(--text-dim); white-space:nowrap; }
-.logo-byline a { color:var(--text-sub); text-decoration:none; }
-.logo-byline a:hover { color:var(--accent); }
+.logo-byline a { color:var(--text-sub); text-decoration:none; pointer-events:none; }
+
+/* No-video compact bar */
+.no-video-bar {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px; background:var(--surface2);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.no-video-bar .nvb-icon { font-size:22px; flex-shrink:0; }
+.no-video-bar .nvb-label { font-size:11px; color:var(--text-sub); white-space:nowrap; margin-bottom:4px; }
+.no-video-bar .nvb-row { display:flex; gap:6px; align-items:center; flex:1; }
+.no-video-bar .nvb-yt { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:5px; padding:6px 9px; font-size:11px; min-width:0; }
+.no-video-bar .nvb-yt:focus { outline:none; border-color:var(--accent); }
 .session-title {
   flex:1; font-size:13px; color:var(--text-sub);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -402,14 +419,13 @@ iframe.video-el { height:42vh; }
 
   <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
   <header class="topbar">
-    <div class="logo-group">
+    <div class="logo-group" id="btnHome" role="button" tabindex="0" title="Home — start a new session" aria-label="Home">
       <span class="logo">EpiBins<sup>β</sup></span>
       <span class="logo-byline">by <a href="https://github.com/HemanthGudaparthi" target="_blank" rel="noreferrer">Hemanth Gudaparthi</a></span>
     </div>
     <span class="session-title" id="sessionTitle">No video loaded</span>
     <div class="topbar-actions">
       <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Video</span></button>
-      <button class="btn" id="btnDemo">▶ Demo</button>
       <button class="btn btn-accent" id="btnNextGap" disabled>Next gap →</button>
       <button class="btn" id="btnExport" disabled>Export</button>
       <button class="btn btn-icon" id="btnSettings" title="Settings">⚙</button>
@@ -481,8 +497,29 @@ iframe.video-el { height:42vh; }
         </div>
       </div>
 
+      <!-- No-video compact bar (shown when transcript loaded but no video yet) -->
+      <div class="no-video-bar" id="noVideoBar" style="display:none">
+        <span class="nvb-icon">🎬</span>
+        <div style="flex:1;min-width:0">
+          <p class="nvb-label">Load a video to watch while you study</p>
+          <div class="nvb-row">
+            <button class="btn" id="btnAddVideoInline" style="font-size:11px;padding:5px 9px;white-space:nowrap">📂 Upload</button>
+            <input class="nvb-yt" type="url" id="ytInputInline" placeholder="or paste YouTube URL…" />
+            <button class="btn btn-accent" id="btnYTInline" style="font-size:11px;padding:5px 9px;white-space:nowrap">Load</button>
+          </div>
+        </div>
+        <input type="file" id="fileInputInline" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
+      </div>
+
       <!-- Player -->
       <div class="player-wrap" id="playerWrap" style="display:none">
+        <!-- Change video chip -->
+        <button id="btnChangeVideo" title="Change video" style="
+          position:absolute;top:8px;right:8px;z-index:20;
+          background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);
+          color:#fff;border-radius:5px;padding:4px 8px;font-size:11px;cursor:pointer;
+          backdrop-filter:blur(4px);display:none;
+        ">⟳ Change video</button>
         <video class="video-el" id="videoEl" controls playsinline style="display:none"></video>
         <iframe class="video-el" id="ytFrame" allowfullscreen style="display:none;border:none"></iframe>
         <div class="sticky-overlay" id="stickyOverlay"></div>
@@ -885,6 +922,27 @@ function updateActiveSegment() {
   if (active) active.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+
+function goHome() {
+  // Pause and clear any loaded video
+  const vid=$('videoEl');
+  if (!vid.paused) vid.pause();
+  vid.src=''; vid.style.display='none';
+  const fr=$('ytFrame');
+  fr.src='about:blank'; fr.style.display='none';
+  // Reset layout
+  show('videoLoader'); hide('playerWrap'); hide('noVideoBar');
+  hide('transcriptWrap'); hide('transcriptLoading'); hide('binPrompt');
+  $('btnChangeVideo').style.display='none';
+  // Reset session state (keep bins + notes from prior session)
+  S.segments=[]; S.keywords=[]; S.hasVideo=false; S.transcribed=false;
+  S.currentMs=0; S.durationMs=0;
+  S.sessionTitle='No video loaded'; $('sessionTitle').textContent=S.sessionTitle;
+  $('progressFill').style.width='0';
+  $('transcriptPanel').innerHTML='';
+}
+
 /* ── Video / loading ─────────────────────────────────────────────────────── */
 
 function simulateProgress(callback) {
@@ -918,32 +976,45 @@ function loadContent(via) {
   S.transcribed = true;
 }
 
+function activateVideoElement() {
+  // Called when a real video source is ready — hides no-video bar, shows player
+  hide('noVideoBar');
+  show('playerWrap');
+  $('btnChangeVideo').style.display='block';
+}
+
 function handleFile(file) {
   S.sessionTitle = file.name.replace(/\.[^.]+$/,'');
   $('sessionTitle').textContent = S.sessionTitle;
   const url = URL.createObjectURL(file);
   const vid = $('videoEl');
   vid.src = url; vid.style.display='block'; $('ytFrame').style.display='none';
-  show('playerWrap'); S.hasVideo=true;
+  S.hasVideo=true;
+  activateVideoElement();
+  hide('videoLoader');
+  // Re-attach time listeners (safe to add multiple — only fires from active source)
   vid.addEventListener('timeupdate', ()=>{ S.currentMs=Math.round(vid.currentTime*1000); tick(); });
   vid.addEventListener('durationchange',()=>{ S.durationMs=Math.round(vid.duration*1000); renderPips(); });
-  simulateProgress(()=>loadContent('on-device Whisper'));
+  // If already transcribed (e.g. user adds video after loading demo), skip re-transcribe
+  if (!S.transcribed) simulateProgress(()=>loadContent('on-device Whisper'));
 }
 
-function handleYouTube(url) {
-  hide('loadError');
+function handleYouTube(url, errorElId='loadError') {
+  $(errorElId) && ($(errorElId).style.display='none');
   const m=url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
   if (!m) {
-    const el=$('loadError'); el.style.display='block';
-    el.textContent='Not a valid YouTube URL — try https://youtube.com/watch?v=xxxxx'; return;
+    const el=$(errorElId); if (el) { el.style.display='block'; el.textContent='Not a valid YouTube URL — try https://youtube.com/watch?v=xxxxx'; }
+    return;
   }
   const vid=m[1]; S.sessionTitle=`YouTube: ${vid}`;
   $('sessionTitle').textContent = S.sessionTitle;
   const fr=$('ytFrame');
   fr.src=`https://www.youtube.com/embed/${vid}?enablejsapi=1&playsinline=1`;
   fr.style.display='block'; $('videoEl').style.display='none';
-  show('playerWrap'); S.hasVideo=true;
-  simulateProgress(()=>loadContent('YouTube captions'));
+  S.hasVideo=true;
+  activateVideoElement();
+  hide('videoLoader');
+  if (!S.transcribed) simulateProgress(()=>loadContent('YouTube captions'));
 }
 
 /* ── Seek / timeline ─────────────────────────────────────────────────────── */
@@ -1206,19 +1277,23 @@ async function testConnection() {
 
 /* ── Wiring ──────────────────────────────────────────────────────────────── */
 
+// Home button (logo click)
+$('btnHome').addEventListener('click', goHome);
+$('btnHome').addEventListener('keydown', e=>e.key==='Enter'&&goHome());
+
 // Top bar
 $('btnNextGap').addEventListener('click',nextGap);
 $('btnExport').addEventListener('click',exportMd);
 $('btnSettings').addEventListener('click',()=>show('settingsOverlay'));
 $('btnLoadVideo').addEventListener('click',()=>$('hiddenFileInput').click());
-$('btnDemo').addEventListener('click',()=>{
-  S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
-  hide('videoLoader'); show('playerWrap');
-  $('videoEl').style.display='none'; $('ytFrame').style.display='none';
-  simulateProgress(()=>loadContent('demo data'));
+
+// Change video chip (on player)
+$('btnChangeVideo').addEventListener('click',()=>{
+  // Keep transcript + bins; just swap the video
+  $('hiddenFileInput').click();
 });
 
-// File drop
+// File drop zone (home screen)
 const dz=$('dropzone');
 dz.addEventListener('click',()=>$('fileInput').click());
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragging');});
@@ -1227,14 +1302,22 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragging'
 $('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
 $('hiddenFileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
 
-// YouTube
+// YouTube (home screen)
 $('btnYT').addEventListener('click',()=>handleYouTube($('ytInput').value.trim()));
 $('ytInput').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytInput').value.trim()));
 
-// Demo transcript (no video)
+// Inline no-video bar (add video after loading demo transcript)
+$('btnAddVideoInline').addEventListener('click',()=>$('fileInputInline').click());
+$('fileInputInline').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
+$('btnYTInline').addEventListener('click',()=>handleYouTube($('ytInputInline').value.trim()));
+$('ytInputInline').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytInputInline').value.trim()));
+
+// Demo transcript — show no-video bar so user can still add a video
 $('btnDemoTranscript').addEventListener('click',()=>{
   S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
-  hide('videoLoader'); hide('playerWrap');
+  hide('videoLoader');
+  // Show the no-video bar so they can load a video at any time
+  show('noVideoBar');
   simulateProgress(()=>loadContent('demo data'));
 });
 
