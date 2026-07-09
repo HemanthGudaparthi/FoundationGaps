@@ -399,6 +399,57 @@ iframe.video-el { height:42vh; }
 .congrats-actions { display:flex; flex-direction:column; gap:8px; width:100%; margin-top:6px; }
 .congrats-actions .btn { padding:11px; font-size:14px; width:100%; }
 
+/* ── Knowledge Report ──────────────────────────────────────────────────────── */
+.report-overlay-inner {
+  background:#fff; color:#1a1a1a;
+  width:min(760px,95vw); max-height:92vh;
+  border-radius:12px; overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
+.report-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; background:#f4f4f8; border-bottom:1px solid #ddd;
+  flex-shrink:0; gap:10px;
+}
+.report-toolbar h2 { font-size:14px; font-weight:600; color:#333; margin:0; font-family:system-ui,sans-serif; }
+.report-toolbar-btns { display:flex; gap:8px; }
+.report-toolbar .btn { background:#fff; border:1px solid #ccc; color:#333; }
+.report-toolbar .btn-accent { background:#7c5cff; border-color:transparent; color:#fff; }
+.report-toolbar .btn:hover:not(:disabled) { border-color:#7c5cff; }
+.report-scroll { overflow-y:auto; }
+.report-doc {
+  padding:40px 48px; font-family:Georgia,'Times New Roman',serif;
+  line-height:1.7; color:#1a1a1a; max-width:680px; margin:0 auto;
+}
+.report-doc .report-logo { font-size:11px; color:#7c5cff; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui,sans-serif; }
+.report-doc h1 { font-size:24px; font-weight:700; margin:0 0 10px; line-height:1.3; }
+.report-byline { font-size:13px; color:#555; margin-bottom:20px; display:flex; gap:20px; flex-wrap:wrap; align-items:center; border-bottom:2px solid #eee; padding-bottom:14px; font-family:system-ui,sans-serif; }
+.report-name-input { border:none; border-bottom:1px solid #bbb; background:transparent; font-size:13px; color:#333; padding:1px 4px; font-family:system-ui,sans-serif; width:180px; }
+.report-name-input:focus { outline:none; border-color:#7c5cff; }
+.report-doc h2 { font-size:15px; font-weight:700; margin:26px 0 12px; padding-bottom:4px; border-bottom:1px solid #eee; font-family:system-ui,sans-serif; letter-spacing:-.2px; }
+.report-progress { display:inline-flex; align-items:center; gap:10px; background:#f4f0ff; border-radius:8px; padding:10px 16px; font-family:system-ui,sans-serif; font-size:13px; margin-bottom:18px; }
+.report-progress-count { font-size:26px; font-weight:900; color:#7c5cff; line-height:1; }
+.report-gap { margin-bottom:16px; padding:12px 14px; background:#f9f9fd; border-left:3px solid #7c5cff; border-radius:0 6px 6px 0; page-break-inside:avoid; break-inside:avoid; }
+.report-gap-hd { display:flex; gap:10px; align-items:baseline; margin-bottom:5px; }
+.report-gap-num { background:#7c5cff; color:#fff; font-size:10px; font-weight:700; border-radius:3px; padding:2px 5px; font-family:system-ui,sans-serif; flex-shrink:0; }
+.report-gap-concept { font-weight:700; font-size:15px; }
+.report-gap-note { margin:0 0 4px; color:#222; font-size:14px; }
+.report-gap-meta { font-size:10px; color:#aaa; font-family:system-ui,sans-serif; }
+.report-note-row { display:flex; gap:10px; margin-bottom:8px; font-size:14px; }
+.report-note-ts { font-family:monospace; color:#7c5cff; flex-shrink:0; }
+.report-footer { margin-top:36px; padding-top:12px; border-top:1px solid #eee; font-size:10px; color:#bbb; text-align:center; font-family:system-ui,sans-serif; }
+.report-empty { color:#aaa; font-style:italic; font-size:14px; }
+@media print {
+  body > *:not(#reportOverlay) { display:none !important; }
+  #reportOverlay { position:static !important; background:transparent !important; display:flex !important; padding:0 !important; }
+  .report-overlay-inner { width:100% !important; max-height:none !important; border-radius:0 !important; box-shadow:none !important; }
+  .report-toolbar { display:none !important; }
+  .report-scroll { overflow:visible !important; }
+  .report-doc { padding:16px 0 !important; }
+  .report-name-input { border:none !important; }
+}
+
 /* ── Responsive (portrait / small) ─────────────────────────────────────────── */
 @media (max-width: 680px) {
   .body { flex-direction:column; }
@@ -427,6 +478,7 @@ iframe.video-el { height:42vh; }
     <div class="topbar-actions">
       <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Video</span></button>
       <button class="btn btn-accent" id="btnNextGap" disabled>Next gap →</button>
+      <button class="btn" id="btnReport" disabled title="View printable Knowledge Report">📋 <span class="btn-label">Report</span></button>
       <button class="btn" id="btnExport" disabled>Export</button>
       <button class="btn btn-icon" id="btnSettings" title="Settings">⚙</button>
     </div>
@@ -671,15 +723,32 @@ iframe.video-el { height:42vh; }
 <div class="modal-overlay" id="congratsOverlay" style="display:none">
   <div class="modal congrats-modal">
     <div class="congrats-icon">🎉</div>
-    <h2 class="congrats-title">All bins filled!</h2>
+    <h2 class="congrats-title">All gaps closed!</h2>
     <p class="congrats-body">You've closed every knowledge gap identified in this session. That's genuine mastery.</p>
     <div>
       <div class="stat-num" id="congratsNum">0</div>
       <div class="stat-label">concepts learned</div>
     </div>
     <div class="congrats-actions">
-      <button class="btn btn-accent" id="congratsExport">Export knowledge map</button>
+      <button class="btn btn-accent" id="congratsReport">📋 View &amp; Print Report</button>
+      <button class="btn" id="congratsExport">Export Markdown</button>
       <button class="btn" id="congratsDismiss">Keep studying</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Knowledge Report overlay ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="reportOverlay" style="display:none">
+  <div class="report-overlay-inner">
+    <div class="report-toolbar">
+      <h2>Knowledge Report</h2>
+      <div class="report-toolbar-btns">
+        <button class="btn btn-accent" onclick="window.print()">🖨 Print / Save PDF</button>
+        <button class="btn btn-icon" id="reportClose" aria-label="Close report">✕</button>
+      </div>
+    </div>
+    <div class="report-scroll">
+      <div class="report-doc" id="reportDoc"></div>
     </div>
   </div>
 </div>
@@ -841,6 +910,7 @@ function updateBinStats() {
   $('binsPct').textContent = pct+'%';
   $('binsSub').innerHTML   = `${filled} filled · ${deferred} deferred · <span class="gap-count">${empty} gap${empty!==1?'s':''}</span>`;
   $('btnExport').disabled  = total===0;
+  $('btnReport').disabled  = total===0;
   if (total>0 && filled===total) showCongrats();
 }
 
@@ -1103,6 +1173,48 @@ function exportMd() {
   URL.revokeObjectURL(url);
 }
 
+/* ── Knowledge Report ────────────────────────────────────────────────────── */
+
+function showReport() {
+  const filled = S.binNotes;
+  const total  = S.bins.length;
+  const date   = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  $('reportDoc').innerHTML = `
+    <div class="report-logo">FoundationGaps</div>
+    <h1>${esc(S.sessionTitle)}</h1>
+    <div class="report-byline">
+      <span>Name:&nbsp;<input class="report-name-input" type="text" placeholder="Your name" id="reportNameInput" /></span>
+      <span>${date}</span>
+    </div>
+    <div class="report-progress">
+      <span class="report-progress-count">${filled.length}</span>
+      <span>of <strong>${total||100}</strong> foundation gaps closed</span>
+    </div>
+    <h2>Closed Foundation Gaps</h2>
+    ${filled.length===0
+      ? '<p class="report-empty">No gaps closed yet — close some gaps first.</p>'
+      : filled.map(bn=>`
+          <div class="report-gap">
+            <div class="report-gap-hd">
+              <span class="report-gap-num">${bn.binIndex}</span>
+              <span class="report-gap-concept">${esc(bn.concept)}</span>
+            </div>
+            <p class="report-gap-note">${esc(bn.note)}</p>
+            <div class="report-gap-meta">Closed ${esc(bn.filledAt)}</div>
+          </div>`).join('')}
+    ${S.notes.length>0 ? `
+      <h2>Video Notes</h2>
+      ${S.notes.map(n=>`
+        <div class="report-note-row">
+          <span class="report-note-ts">[${msToTs(n.timestampMs)}]</span>
+          <span>${esc(n.text)}</span>
+        </div>`).join('')}` : ''}
+    <div class="report-footer">
+      Generated with FoundationGaps &nbsp;·&nbsp; hemanthgudaparthi.github.io/FoundationGaps
+    </div>`;
+  show('reportOverlay');
+}
+
 /* ── Congrats ────────────────────────────────────────────────────────────── */
 
 let _congratsShown=false;
@@ -1283,6 +1395,8 @@ $('btnHome').addEventListener('keydown', e=>e.key==='Enter'&&goHome());
 
 // Top bar
 $('btnNextGap').addEventListener('click',nextGap);
+$('btnReport').addEventListener('click',showReport);
+$('reportClose').addEventListener('click',()=>hide('reportOverlay'));
 $('btnExport').addEventListener('click',exportMd);
 $('btnSettings').addEventListener('click',()=>show('settingsOverlay'));
 $('btnLoadVideo').addEventListener('click',()=>$('hiddenFileInput').click());
@@ -1363,6 +1477,7 @@ $('btnDownloadSelf').addEventListener('click',()=>{
 });
 
 // Congrats
+$('congratsReport').addEventListener('click',()=>{hide('congratsOverlay');showReport();});
 $('congratsExport').addEventListener('click',()=>{exportMd();hide('congratsOverlay');});
 $('congratsDismiss').addEventListener('click',()=>hide('congratsOverlay'));
 
@@ -1385,6 +1500,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if($('enrichOverlay').style.display!=='none')  hide('enrichOverlay');
     else if($('settingsOverlay').style.display!=='none') hide('settingsOverlay');
+    else if($('reportOverlay').style.display!=='none') hide('reportOverlay');
     else if($('congratsOverlay').style.display!=='none') hide('congratsOverlay');
     else if($('binPrompt').style.display!=='none') dismissBinPrompt();
   }
