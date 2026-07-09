@@ -4,7 +4,8 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-hemanthgudaparthi.github.io%2FEpiBins-7c5cff?style=flat-square)](https://hemanthgudaparthi.github.io/EpiBins/)
 [![Version](https://img.shields.io/badge/version-0.1.0--beta-7c5cff?style=flat-square)](https://github.com/HemanthGudaparthi/EpiBins/releases)
-[![License](https://img.shields.io/badge/license-UNLICENSED-555?style=flat-square)](#)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
+[![Open Source](https://img.shields.io/badge/open--source-yes-22c55e?style=flat-square)](https://github.com/HemanthGudaparthi/EpiBins)
 
 **Author:** [Hemanth Gudaparthi](https://github.com/HemanthGudaparthi)  
 **Platforms:** iPad · Mac · Windows · Web  
@@ -28,12 +29,24 @@ EpiBins turns passive video-watching into active learning. It auto-detects techn
 
 ---
 
-## Live Demo
+## Use it — three ways, no account required
 
-**Try it now — no install, no signup:**  
-**[https://hemanthgudaparthi.github.io/EpiBins/](https://hemanthgudaparthi.github.io/EpiBins/)**
+| Option | How |
+|---|---|
+| **Browser (no install)** | Open **[hemanthgudaparthi.github.io/EpiBins](https://hemanthgudaparthi.github.io/EpiBins/)** — works immediately |
+| **Download & run locally** | Click "💾 Download this page" inside the app — save `epibins.html`, open it in any browser, works fully offline |
+| **Clone & self-host** | `git clone https://github.com/HemanthGudaparthi/EpiBins && cd EpiBins/docs && python3 -m http.server 8080` → open `localhost:8080` |
 
-Click **"Load demo transcript"** to explore a sample deep-learning lecture with 20 pre-detected keywords. Click any purple underlined term for instant enrichment.
+Wikipedia and arXiv enrichment work for free with no key. For AI explanations, add your own API key in ⚙ Settings — or run a local [Ollama](https://ollama.com) server and pay nothing.
+
+### AI / LLM options (all configurable in ⚙ Settings)
+
+| Provider | Base URL | Key needed | Cost |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | Yes | Pay-per-use |
+| Ollama (local) | `http://localhost:11434/v1` | No | Free |
+| OpenRouter | `https://openrouter.ai/api/v1` | Yes | Pay-per-use |
+| Any OpenAI-compatible | custom URL | Depends | Varies |
 
 ---
 
@@ -210,9 +223,17 @@ Keys are stored in the device's secure keychain (Capacitor Preferences on iOS, l
 
 ---
 
+## Open Source
+
+EpiBins is released under the **MIT License** — see [LICENSE](LICENSE).
+
+You are free to use it, modify it, and distribute it. If you build something on top of it, a mention or link back is appreciated but not required.
+
+Contributions welcome: open an issue or PR on [github.com/HemanthGudaparthi/EpiBins](https://github.com/HemanthGudaparthi/EpiBins).
+
 ## Author
 
 **Hemanth Gudaparthi**  
 [github.com/HemanthGudaparthi](https://github.com/HemanthGudaparthi)
 
-EpiBins is a personal learning tool built for fun and genuine use. It's free. On-device transcription requires no API key and keeps your content fully private.
+Built as a personal learning tool — free to use, free to fork. On-device transcription requires no API key and keeps your content fully private.

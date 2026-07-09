@@ -423,7 +423,43 @@ iframe.video-el { height:42vh; }
     <main class="main-col" id="mainCol">
 
       <!-- Video loader -->
-      <div id="videoLoader" style="overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:24px;">
+      <div id="videoLoader" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:24px;">
+
+        <!-- How to use strip -->
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+          <p style="font-size:13px;font-weight:700;color:var(--text)">Three ways to use EpiBins</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:16px">🌐</span>
+              <span style="font-size:12px;font-weight:600">Use here</span>
+              <span style="font-size:11px;color:var(--text-sub)">Already running — no install. Wikipedia &amp; arXiv are always free.</span>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:16px">💾</span>
+              <span style="font-size:12px;font-weight:600">Save &amp; run locally</span>
+              <span style="font-size:11px;color:var(--text-sub)">Download the HTML, open in any browser — works fully offline once saved.</span>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:16px">🤖</span>
+              <span style="font-size:12px;font-weight:600">Add AI explanations</span>
+              <span style="font-size:11px;color:var(--text-sub)">Paste an OpenAI key in ⚙ Settings. Or point it at a local Ollama server.</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-accent" id="btnDownloadSelf" style="font-size:12px;padding:7px 13px;">💾 Download this page</button>
+            <span style="font-size:11px;color:var(--text-sub)">Single HTML file · no server needed · works on any computer</span>
+          </div>
+        </div>
+
+        <!-- API key callout (shown when no key saved) -->
+        <div id="apiKeyCallout" style="background:rgba(124,92,255,0.07);border:1px solid rgba(124,92,255,0.25);border-radius:8px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-sub)">
+            <strong style="color:var(--text)">Optional:</strong> add an OpenAI key for plain-English AI explanations alongside Wikipedia.
+            No key needed for Wikipedia, arXiv, or keyword detection.
+          </span>
+          <button class="btn" id="btnOpenSettings" style="font-size:12px;white-space:nowrap;flex-shrink:0;">⚙ Add API key</button>
+        </div>
+
         <div class="vl-dropzone" id="dropzone">
           <div class="vl-icon">📂</div>
           <p class="vl-title">Upload a video or audio file</p>
@@ -548,28 +584,47 @@ iframe.video-el { height:42vh; }
     </div>
     <div class="modal-body">
       <section>
-        <h3>LLM Explanations</h3>
-        <p class="desc">Add an API key to get plain-English AI explanations alongside Wikipedia. Without a key, Wikipedia and arXiv still work for free.</p>
-        <label for="settingsKey">OpenAI API Key</label>
-        <input type="password" id="settingsKey" class="text-input" placeholder="sk-…" autocomplete="off" />
-        <label for="settingsModel">Model</label>
-        <select id="settingsModel" class="text-input">
-          <option value="gpt-4o-mini">GPT-4o mini (fast, cheap)</option>
-          <option value="gpt-4o">GPT-4o (best quality)</option>
-          <option value="claude-haiku-4-5-20251001">Claude Haiku (fast)</option>
+        <h3>AI Explanations — bring your own key or run locally</h3>
+        <p class="desc">Wikipedia and arXiv always work for free with no key. Add an API key to also get plain-English AI explanations. You can use OpenAI, point it at a local <strong>Ollama</strong> server (completely free, runs on your own machine), or any OpenAI-compatible endpoint.</p>
+
+        <label>API base URL</label>
+        <select id="settingsPreset" class="text-input" style="margin-bottom:6px">
+          <option value="https://api.openai.com/v1">OpenAI (cloud)</option>
+          <option value="http://localhost:11434/v1">Ollama (local — free, no key needed)</option>
+          <option value="https://openrouter.ai/api/v1">OpenRouter</option>
+          <option value="custom">Custom URL…</option>
         </select>
-        <div style="display:flex;gap:8px;align-items:center">
+        <input type="url" id="settingsBaseUrl" class="text-input" style="display:none;margin-bottom:6px" placeholder="http://localhost:11434/v1" />
+
+        <label for="settingsModel">Model name</label>
+        <input type="text" id="settingsModel" class="text-input" placeholder="gpt-4o-mini" style="margin-bottom:2px" />
+        <p class="desc" style="margin-bottom:6px">OpenAI: <code>gpt-4o-mini</code> &nbsp; Ollama: <code>llama3.2</code> &nbsp; Claude: <code>claude-haiku-4-5-20251001</code></p>
+
+        <label for="settingsKey">API key <span style="font-weight:400;color:var(--text-dim)">(leave blank for Ollama)</span></label>
+        <input type="password" id="settingsKey" class="text-input" placeholder="sk-… (not needed for Ollama)" autocomplete="off" />
+        <p class="desc" style="margin-top:3px">Stored only in your browser's localStorage — never sent anywhere except the endpoint above.</p>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
           <button class="btn btn-accent" id="settingsSave">Save</button>
+          <button class="btn" id="settingsTest">Test connection</button>
           <span class="saved-msg" id="savedMsg" style="display:none">Saved ✓</span>
+          <span id="testMsg" style="font-size:12px;display:none"></span>
         </div>
       </section>
+
+      <section>
+        <h3>Run 100% offline with Ollama</h3>
+        <p class="desc">Install <a href="https://ollama.com" target="_blank" rel="noreferrer">ollama.com</a>, run <code>ollama pull llama3.2</code>, then select "Ollama (local)" above. Everything — video, keywords, AI explanations — stays on your machine. Free forever.</p>
+      </section>
+
       <section>
         <h3>Keyboard Shortcuts</h3>
         <p class="desc"><kbd>N</kbd> — add timestamped note &nbsp;·&nbsp; <kbd>Esc</kbd> — close panels</p>
       </section>
+
       <section>
         <h3>Privacy</h3>
-        <p class="desc">Only keyword strings are sent to external APIs. Your video, audio, and notes never leave your device. Wikipedia and arXiv lookups require no account.</p>
+        <p class="desc">Your video, audio, and notes never leave your device. Only the text of clicked keywords is sent to the API you configure. Wikipedia and arXiv require no account. Keys live only in your browser's localStorage.</p>
       </section>
     </div>
   </div>
@@ -1094,21 +1149,59 @@ function renderEnrichment(term,wiki,arxiv,llm) {
 
 /* ── Settings ────────────────────────────────────────────────────────────── */
 
+function resolvedBaseUrl() {
+  const preset=$('settingsPreset').value;
+  return preset==='custom' ? $('settingsBaseUrl').value.trim() : preset;
+}
+
 function loadSettings() {
-  const key   = localStorage.getItem('epibins:key')??'';
-  const model = localStorage.getItem('epibins:model')?? 'gpt-4o-mini';
-  $('settingsKey').value=key; $('settingsModel').value=model;
-  if (key) S.llmConfig={apiKey:key,baseUrl:'https://api.openai.com/v1',model};
+  const key     = localStorage.getItem('epibins:key')??'';
+  const model   = localStorage.getItem('epibins:model')?? 'gpt-4o-mini';
+  const baseUrl = localStorage.getItem('epibins:baseUrl')?? 'https://api.openai.com/v1';
+  $('settingsKey').value   = key;
+  $('settingsModel').value = model;
+  // Match preset
+  const preset=$('settingsPreset');
+  const opt=[...preset.options].find(o=>o.value===baseUrl);
+  if (opt) { preset.value=baseUrl; $('settingsBaseUrl').style.display='none'; }
+  else { preset.value='custom'; $('settingsBaseUrl').style.display='block'; $('settingsBaseUrl').value=baseUrl; }
+  if (key||baseUrl.includes('localhost')) {
+    S.llmConfig={apiKey:key,baseUrl,model};
+  }
+  // Hide callout if key already set
+  if (key) { const c=$('apiKeyCallout'); if(c) c.style.display='none'; }
 }
 
 function saveSettings() {
-  const key=$('settingsKey').value.trim();
-  const model=$('settingsModel').value;
+  const key     = $('settingsKey').value.trim();
+  const model   = $('settingsModel').value.trim()||'gpt-4o-mini';
+  const baseUrl = resolvedBaseUrl();
   localStorage.setItem('epibins:key',key);
   localStorage.setItem('epibins:model',model);
-  S.llmConfig=key?{apiKey:key,baseUrl:'https://api.openai.com/v1',model}:null;
+  localStorage.setItem('epibins:baseUrl',baseUrl);
+  // Ollama works without a key; others need one
+  const isOllama = baseUrl.includes('localhost')||baseUrl.includes('127.0.0.1');
+  S.llmConfig = (key||isOllama) ? {apiKey:key,baseUrl,model} : null;
   const msg=$('savedMsg'); msg.style.display='inline';
   setTimeout(()=>msg.style.display='none',2000);
+  if (key||isOllama) { const c=$('apiKeyCallout'); if(c) c.style.display='none'; }
+}
+
+async function testConnection() {
+  const msg=$('testMsg');
+  msg.style.display='inline'; msg.style.color='var(--text-sub)'; msg.textContent='Testing…';
+  try {
+    const key=($('settingsKey').value.trim()||'ollama');
+    const baseUrl=resolvedBaseUrl();
+    const model=($('settingsModel').value.trim()||'gpt-4o-mini');
+    const res=await fetch(`${baseUrl}/chat/completions`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+      body:JSON.stringify({model,max_tokens:5,messages:[{role:'user',content:'Hi'}]}),
+    });
+    if (res.ok) { msg.style.color='var(--green)'; msg.textContent='✓ Connected'; }
+    else { const e=await res.json().catch(()=>({})); msg.style.color='#fca5a5'; msg.textContent=`✗ ${res.status}: ${e?.error?.message??'error'}`; }
+  } catch(e) { msg.style.color='#fca5a5'; msg.textContent=`✗ ${e.message}`; }
 }
 
 /* ── Wiring ──────────────────────────────────────────────────────────────── */
@@ -1163,7 +1256,28 @@ $('enrichOverlay').addEventListener('click',e=>{if(e.target===$('enrichOverlay')
 // Settings
 $('settingsClose').addEventListener('click',()=>hide('settingsOverlay'));
 $('settingsSave').addEventListener('click',saveSettings);
+$('settingsTest').addEventListener('click',testConnection);
 $('settingsOverlay').addEventListener('click',e=>{if(e.target===$('settingsOverlay'))hide('settingsOverlay');});
+// Preset → toggle custom URL field
+$('settingsPreset').addEventListener('change',e=>{
+  const custom=e.target.value==='custom';
+  $('settingsBaseUrl').style.display=custom?'block':'none';
+  if (!custom) { $('settingsBaseUrl').value=''; }
+  // Auto-set model hint based on preset
+  const modelMap={'https://api.openai.com/v1':'gpt-4o-mini','http://localhost:11434/v1':'llama3.2','https://openrouter.ai/api/v1':'openai/gpt-4o-mini'};
+  if (modelMap[e.target.value]) $('settingsModel').value=modelMap[e.target.value];
+});
+// Open settings from callout
+$('btnOpenSettings')?.addEventListener('click',()=>show('settingsOverlay'));
+// Download self (save the HTML page locally)
+$('btnDownloadSelf').addEventListener('click',()=>{
+  const html=document.documentElement.outerHTML;
+  const blob=new Blob(['<!DOCTYPE html>\n'+html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='epibins.html'; a.click();
+  URL.revokeObjectURL(url);
+});
 
 // Congrats
 $('congratsExport').addEventListener('click',()=>{exportMd();hide('congratsOverlay');});

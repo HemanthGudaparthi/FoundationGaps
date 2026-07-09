@@ -3,8 +3,7 @@
   "version": "0.1.0-beta.0",
   "description": "EpiBins — Fundamental Knowledge Bins for video annotation and learning",
   "author": "Hemanth Gudaparthi",
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "MIT",
   "workspaces": [
     "packages/renderer",
     "packages/shared",
