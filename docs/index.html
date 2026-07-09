@@ -69,7 +69,7 @@ kbd { background:var(--surface2); border:1px solid var(--border2); border-radius
 .logo { font-weight:800; font-size:19px; color:var(--accent); letter-spacing:-0.5px; white-space:nowrap; }
 .logo sup { font-size:10px; font-weight:600; color:var(--text-sub); letter-spacing:0; vertical-align:super; }
 .logo-byline { font-size:10px; color:var(--text-dim); white-space:nowrap; }
-.logo-byline a { color:var(--text-sub); text-decoration:none; pointer-events:none; }
+.logo-byline a { color:var(--text-sub); }
 
 /* No-video compact bar */
 .no-video-bar {
@@ -540,7 +540,7 @@ iframe.video-el { height:42vh; }
         <!-- How to use strip -->
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
           <p style="font-size:13px;font-weight:700;color:var(--text)">Three ways to use FoundationGaps</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
               <span style="font-size:16px">🌐</span>
               <span style="font-size:12px;font-weight:600">Use here</span>
@@ -602,6 +602,7 @@ iframe.video-el { height:42vh; }
             <button class="btn" id="btnAddVideoInline" style="font-size:11px;padding:5px 9px;white-space:nowrap">📂 Upload</button>
             <input class="nvb-yt" type="url" id="ytInputInline" placeholder="or paste YouTube URL…" />
             <button class="btn btn-accent" id="btnYTInline" style="font-size:11px;padding:5px 9px;white-space:nowrap">Load</button>
+            <span id="ytInlineError" style="font-size:11px;color:var(--red);display:none;padding:0 4px"></span>
           </div>
         </div>
         <input type="file" id="fileInputInline" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
@@ -800,7 +801,7 @@ iframe.video-el { height:42vh; }
 
       <section>
         <h3>Keyboard Shortcuts</h3>
-        <p class="desc"><kbd>N</kbd> — add timestamped note &nbsp;·&nbsp; <kbd>Esc</kbd> — close panels</p>
+        <p class="desc"><kbd>N</kbd> — add timestamped note &nbsp;·&nbsp; <kbd>Ctrl/Cmd+Enter</kbd> — save note &nbsp;·&nbsp; <kbd>Esc</kbd> — close panels</p>
       </section>
 
       <section>
@@ -988,6 +989,8 @@ function esc(str='') {
 /* ── Session persistence ─────────────────────────────────────────────────── */
 
 function initSession(title) {
+  // FIX 17: actually use the title parameter
+  S.sessionTitle = title;
   S.sessionId = crypto.randomUUID();
   S.sessionCreatedAt = new Date().toISOString();
 }
@@ -1012,7 +1015,8 @@ function saveCurrentSession() {
     bins: S.bins,
   };
   all.unshift(entry);
-  localStorage.setItem('foundationgaps:sessions', JSON.stringify(all.slice(0,50)));
+  // FIX 9: wrap in try/catch to handle QuotaExceededError gracefully
+  try { localStorage.setItem('foundationgaps:sessions', JSON.stringify(all.slice(0,50))); } catch(e) { console.warn('Session save failed:', e); }
 }
 
 /* ── Session Library UI ──────────────────────────────────────────────────── */
@@ -1035,10 +1039,12 @@ function renderLibrary() {
     </tr></thead>
     <tbody>${sessions.map(s=>{
       const pct = s.totalGaps > 0 ? Math.round(s.gapsClosed/s.totalGaps*100) : 0;
-      const date = new Date(s.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      // FIX 7: use separate dates for Session (created) and Last Active (updated)
+      const createdDate = new Date(s.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const updatedDate = new Date(s.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       return `<tr>
-        <td><div class="sess-title">${esc(s.title)}</div><div class="sess-date">${date}</div></td>
-        <td style="font-size:12px;color:var(--text-sub)">${date}</td>
+        <td><div class="sess-title">${esc(s.title)}</div><div class="sess-date">${createdDate}</div></td>
+        <td style="font-size:12px;color:var(--text-sub)">${updatedDate}</td>
         <td>
           <div style="display:flex;align-items:center;gap:7px">
             <div class="sess-bar-wrap"><div class="sess-bar-fill" style="width:${pct}%"></div></div>
@@ -1079,7 +1085,8 @@ function reviewSession(id) {
 
 function deleteSession(id) {
   const all = getSessionStore().filter(s=>s.id!==id);
-  localStorage.setItem('foundationgaps:sessions', JSON.stringify(all));
+  // FIX 9: wrap in try/catch to handle QuotaExceededError gracefully
+  try { localStorage.setItem('foundationgaps:sessions', JSON.stringify(all)); } catch(e) { console.warn('Session save failed:', e); }
   renderLibrary();
 }
 
@@ -1138,6 +1145,10 @@ function setActiveBin(idx) {
   renderBins();
   const bin = S.bins.find(b=>b.index===idx);
   if (!bin) return;
+  // FIX 5: if bin is already filled, show enrichment instead of prompting again
+  if (bin.state === 'filled') {
+    openEnrichment(bin.concept.toLowerCase()); return;
+  }
   $('bpIdx').textContent     = `Bin #${bin.index}`;
   $('bpConcept').textContent = bin.concept;
   $('bpArea').value          = '';
@@ -1230,6 +1241,11 @@ function goHome() {
   S.sessionTitle='No video loaded'; $('sessionTitle').textContent=S.sessionTitle;
   $('progressFill').style.width='0';
   $('transcriptPanel').innerHTML='';
+  // FIX 1: re-render preserved bins/notes and reset congrats flag
+  _congratsShown = false;
+  renderBins(); updateBinStats(); updateNextGapBtn(); renderNotes();
+  // FIX 11: reset speed visually and in state
+  setSpeed(1);
 }
 
 /* ── Video / loading ─────────────────────────────────────────────────────── */
@@ -1237,12 +1253,13 @@ function goHome() {
 function simulateProgress(callback) {
   hide('transcriptWrap'); hide('videoLoader');
   show('transcriptLoading', 'flex');
+  // FIX 20: use honest labels that reflect what's actually happening (loading demo data)
   const stages = [
-    {pct:15,msg:'Extracting audio…'},
-    {pct:40,msg:'Loading on-device Whisper model…'},
-    {pct:70,msg:'Transcribing…'},
-    {pct:90,msg:'Detecting keywords…'},
-    {pct:100,msg:'Building knowledge bins…'},
+    {pct:15, msg:'Loading transcript…'},
+    {pct:40, msg:'Parsing segments…'},
+    {pct:70, msg:'Detecting keywords…'},
+    {pct:90, msg:'Building knowledge gaps…'},
+    {pct:100, msg:'Ready!'},
   ];
   let i=0;
   function tick() {
@@ -1283,9 +1300,12 @@ function handleFile(file) {
   S.hasVideo=true;
   activateVideoElement();
   hide('videoLoader');
-  // Re-attach time listeners (safe to add multiple — only fires from active source)
-  vid.addEventListener('timeupdate', ()=>{ S.currentMs=Math.round(vid.currentTime*1000); onVideoTick(); });
-  vid.addEventListener('durationchange',()=>{ S.durationMs=Math.round(vid.duration*1000); renderPips(); });
+  // FIX 2: use direct property assignment to prevent duplicate listener accumulation on re-upload
+  vid.ontimeupdate = () => { S.currentMs = Math.round(vid.currentTime * 1000); onVideoTick(); };
+  vid.ondurationchange = () => { S.durationMs = Math.round(vid.duration * 1000); renderPips(); };
+  // FIX 10: ensure speed buttons are enabled for file (local video)
+  document.querySelectorAll('.speed-btn').forEach(b => b.disabled = false);
+  $('speedBar').querySelector('.speed-label').textContent = 'Speed';
   // If already transcribed (e.g. user adds video after loading demo), skip re-transcribe
   if (!S.transcribed) simulateProgress(()=>loadContent('on-device Whisper'));
 }
@@ -1306,6 +1326,9 @@ function handleYouTube(url, errorElId='loadError') {
   S.hasVideo=true;
   activateVideoElement();
   hide('videoLoader');
+  // FIX 10: disable speed buttons for YouTube (setSpeed only affects hidden <video> element)
+  document.querySelectorAll('.speed-btn').forEach(b => b.disabled = true);
+  $('speedBar').querySelector('.speed-label').textContent = 'Speed (use ⚙ in YouTube player)';
   if (!S.transcribed) simulateProgress(()=>loadContent('YouTube captions'));
 }
 
@@ -1399,7 +1422,12 @@ function focusNoteEditor() {
 
 function saveNoteEditor() {
   const text = $('noteEditorArea').value.trim();
-  if (!text) return;
+  if (!text) {
+    // FIX 12: show visual hint when trying to save an empty note
+    $('noteEditorArea').style.borderColor = 'var(--red)';
+    setTimeout(() => $('noteEditorArea').style.borderColor = '', 1200);
+    return;
+  }
   const ms = +($('noteEditorTs').dataset.ms || S.currentMs);
   S.notes.push({ id:crypto.randomUUID(), timestampMs:ms, text });
   $('noteEditorArea').value = '';
@@ -1452,10 +1480,12 @@ function showReport() {
       <span>Name:&nbsp;<input class="report-name-input" type="text" placeholder="Your name" id="reportNameInput" /></span>
       <span>${date}</span>
     </div>
-    <div class="report-progress">
-      <span class="report-progress-count">${filled.length}</span>
-      <span>of <strong>${total||100}</strong> foundation gaps closed</span>
-    </div>
+    ${total > 0
+      ? `<div class="report-progress">
+           <span class="report-progress-count">${filled.length}</span>
+           <span>of <strong>${total}</strong> foundation gaps closed</span>
+         </div>`
+      : `<p class="report-empty" style="margin-bottom:18px">No content loaded yet — load a video or the demo first.</p>`}
     <h2>Closed Foundation Gaps</h2>
     ${filled.length===0
       ? '<p class="report-empty">No gaps closed yet — close some gaps first.</p>'
@@ -1486,7 +1516,8 @@ function showReport() {
 let _congratsShown=false;
 function showCongrats() {
   if (_congratsShown) return; _congratsShown=true;
-  $('congratsNum').textContent=S.bins.length;
+  // FIX 18: show count of filled bins (binNotes), not total bins
+  $('congratsNum').textContent=S.binNotes.length;
   show('congratsOverlay');
 }
 
@@ -1605,8 +1636,12 @@ function renderEnrichment(term,wiki,arxiv,llm) {
     </section>`;
   }
 
+  // FIX 21: show feedback when concept already in bins
+  const alreadyInBins = S.bins.some(b => b.concept.toLowerCase() === term.toLowerCase());
   html+=`<div class="enrich-footer">
-    <button class="btn btn-accent enrich-add-btn" data-term="${esc(term)}">+ Add to knowledge bins</button>
+    <button class="btn btn-accent enrich-add-btn" data-term="${esc(term)}"${alreadyInBins?' disabled':''}>
+      ${alreadyInBins ? 'Already in your bins ✓' : '+ Add to knowledge bins'}
+    </button>
   </div>`;
 
   const body=$('enrichBody');
@@ -1638,11 +1673,14 @@ function loadSettings() {
   if (key||baseUrl.includes('localhost')) {
     S.llmConfig={apiKey:key,baseUrl,model};
   }
-  // Hide callout if key already set
-  if (key) { const c=$('apiKeyCallout'); if(c) c.style.display='none'; }
+  // FIX 6: hide callout if key set OR if using Ollama (no key needed)
+  const isOllamaOnLoad = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
+  if (key || isOllamaOnLoad) { const c=$('apiKeyCallout'); if(c) c.style.display='none'; }
 }
 
 function saveSettings() {
+  // FIX 15: clear test message when saving settings
+  const tm=$('testMsg'); if(tm) { tm.style.display='none'; }
   const key     = $('settingsKey').value.trim();
   const model   = $('settingsModel').value.trim()||'gpt-4o-mini';
   const baseUrl = resolvedBaseUrl();
@@ -1672,6 +1710,8 @@ async function testConnection() {
     if (res.ok) { msg.style.color='var(--green)'; msg.textContent='✓ Connected'; }
     else { const e=await res.json().catch(()=>({})); msg.style.color='#fca5a5'; msg.textContent=`✗ ${res.status}: ${e?.error?.message??'error'}`; }
   } catch(e) { msg.style.color='#fca5a5'; msg.textContent=`✗ ${e.message}`; }
+  // FIX 15: auto-clear test message after 4 seconds
+  setTimeout(()=>{ msg.style.display='none'; }, 4000);
 }
 
 /* ── Wiring ──────────────────────────────────────────────────────────────── */
@@ -1710,11 +1750,13 @@ $('ytInput').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytI
 // Inline no-video bar (add video after loading demo transcript)
 $('btnAddVideoInline').addEventListener('click',()=>$('fileInputInline').click());
 $('fileInputInline').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
-$('btnYTInline').addEventListener('click',()=>handleYouTube($('ytInputInline').value.trim()));
-$('ytInputInline').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytInputInline').value.trim()));
+$('btnYTInline').addEventListener('click',()=>handleYouTube($('ytInputInline').value.trim(),'ytInlineError'));
+$('ytInputInline').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytInputInline').value.trim(),'ytInlineError'));
 
 // Demo transcript — show no-video bar so user can still add a video
 $('btnDemoTranscript').addEventListener('click',()=>{
+  // FIX 4: save current session before starting a new one
+  saveCurrentSession();
   S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
   initSession(DEMO_TITLE);
   hide('videoLoader');
@@ -1730,7 +1772,9 @@ $('bpArea').addEventListener('keydown',e=>{
 $('bpArea').addEventListener('input',()=>{
   const l=$('bpArea').value.trim().length;
   $('bpFill').disabled=l<20;
-  $('bpHint').textContent=l<20?`${20-l} more characters needed`:'';
+  // FIX 16: correct pluralization of "character(s)"
+  const remaining = 20 - l;
+  $('bpHint').textContent = remaining > 0 ? `${remaining} more character${remaining !== 1 ? 's' : ''} needed` : '';
 });
 $('bpFill').addEventListener('click',()=>{if(S.activeBinIndex!==null)fillBin(S.activeBinIndex,$('bpArea').value.trim());});
 $('bpRead').addEventListener('click',()=>{const b=S.bins.find(b=>b.index===S.activeBinIndex);if(b)openEnrichment(b.concept.toLowerCase());});
@@ -1792,6 +1836,8 @@ document.addEventListener('keydown',e=>{
     else if($('libraryOverlay').style.display!=='none') hide('libraryOverlay');
     else if($('reviewOverlay').style.display!=='none') hide('reviewOverlay');
     else if($('binPrompt').style.display!=='none') dismissBinPrompt();
+    // FIX 8: close note editor on Escape even when focus is on Save/Cancel buttons
+    else if($('noteEditor').style.display!=='none') { hide('noteEditor'); $('noteEditorArea').value=''; }
   }
 });
 
@@ -1808,7 +1854,7 @@ $('speedBtns').addEventListener('click', e=>{
 
 // Inline note editor
 $('btnSaveNote').addEventListener('click', saveNoteEditor);
-$('btnCancelNote').addEventListener('click', ()=>{ hide('noteEditor'); $('noteEditorArea').value=''; });
+$('btnCancelNote').addEventListener('click', ()=>{ hide('noteEditor'); $('noteEditorArea').value=''; $('btnAddNote').focus(); });
 $('noteEditorArea').addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveNoteEditor();}
   if(e.key==='Escape'){e.preventDefault();hide('noteEditor');$('noteEditorArea').value='';}
