@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>EpiBins — Fundamental Knowledge Bins</title>
+<style>
+/* ── Variables ─────────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #0f0f13;
+  --surface:      #1a1a22;
+  --surface2:     #23232e;
+  --surface3:     #2a2a38;
+  --border:       rgba(255,255,255,0.08);
+  --border2:      rgba(255,255,255,0.14);
+  --text:         #e8e8f0;
+  --text-sub:     #888899;
+  --text-dim:     #55556a;
+  --accent:       #7c5cff;
+  --accent-h:     #9b7fff;
+  --accent-dim:   rgba(124,92,255,0.12);
+  --green:        #22c55e;
+  --amber:        #f59e0b;
+  --red:          #ef4444;
+  --safe-top:     env(safe-area-inset-top,0px);
+  --safe-bottom:  env(safe-area-inset-bottom,0px);
+  --safe-left:    env(safe-area-inset-left,0px);
+  --safe-right:   env(safe-area-inset-right,0px);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; width:100%; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:15px;
+  overflow:hidden; -webkit-tap-highlight-color:transparent; }
+a { color:var(--accent); }
+button { font-family:inherit; cursor:pointer; }
+input,textarea,select { font-family:inherit; color:var(--text); }
+kbd { background:var(--surface2); border:1px solid var(--border2); border-radius:3px;
+  padding:1px 5px; font-size:11px; }
+
+/* ── App shell ─────────────────────────────────────────────────────────────── */
+#app {
+  display:flex; flex-direction:column; height:100%;
+  padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+}
+
+/* ── Top bar ───────────────────────────────────────────────────────────────── */
+.topbar {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px;
+  padding-left:calc(16px + var(--safe-left));
+  padding-right:calc(16px + var(--safe-right));
+  background:var(--surface); border-bottom:1px solid var(--border);
+  flex-shrink:0; min-height:52px;
+}
+.logo { font-weight:800; font-size:19px; color:var(--accent); letter-spacing:-0.5px; white-space:nowrap; }
+.logo sup { font-size:10px; font-weight:600; color:var(--text-sub); letter-spacing:0; vertical-align:super; }
+.session-title {
+  flex:1; font-size:13px; color:var(--text-sub);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.topbar-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+
+/* Buttons */
+.btn {
+  background:var(--surface2); border:1px solid var(--border2);
+  color:var(--text); padding:6px 11px; border-radius:6px;
+  font-size:12px; font-weight:500; white-space:nowrap;
+  transition:border-color .15s, background .15s;
+}
+.btn:hover:not(:disabled) { border-color:var(--accent); }
+.btn:disabled { opacity:.38; cursor:default; }
+.btn-accent { background:var(--accent); color:#fff; border-color:transparent; font-weight:600; }
+.btn-accent:hover:not(:disabled) { background:var(--accent-h); }
+.btn-icon { padding:6px 9px; font-size:15px; }
+.btn-sm { padding:4px 8px; font-size:11px; }
+
+/* ── Body ──────────────────────────────────────────────────────────────────── */
+.body { display:flex; flex:1; overflow:hidden; }
+
+/* ── Main column ───────────────────────────────────────────────────────────── */
+.main-col {
+  flex:1; display:flex; flex-direction:column;
+  overflow:hidden; border-right:1px solid var(--border); min-width:0;
+}
+
+/* ── Video loader ──────────────────────────────────────────────────────────── */
+#videoLoader { display:flex; flex-direction:column; gap:12px; padding:24px; overflow-y:auto; }
+.vl-dropzone {
+  border:2px dashed var(--border2); border-radius:12px; padding:28px 20px;
+  text-align:center; cursor:pointer; display:flex; flex-direction:column;
+  align-items:center; gap:8px; transition:border-color .2s, background .2s;
+}
+.vl-dropzone:hover, .vl-dropzone.dragging { border-color:var(--accent); background:var(--accent-dim); }
+.vl-icon { font-size:32px; }
+.vl-title { font-size:15px; font-weight:600; }
+.vl-sub { font-size:12px; color:var(--text-sub); }
+.vl-sub.dim { opacity:.6; font-size:11px; }
+.vl-divider { display:flex; align-items:center; gap:10px; color:var(--text-dim); font-size:11px; }
+.vl-divider::before,.vl-divider::after { content:""; flex:1; height:1px; background:var(--border); }
+.yt-row { display:flex; gap:8px; }
+.yt-input {
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:6px; padding:8px 11px; font-size:13px;
+  transition:border-color .15s;
+}
+.yt-input:focus { outline:none; border-color:var(--accent); }
+.vl-note { font-size:11px; color:var(--text-sub); line-height:1.5; }
+.vl-error {
+  background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3);
+  color:#fca5a5; border-radius:6px; padding:9px 11px; font-size:12px;
+}
+.demo-banner {
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+  padding:16px; text-align:center; font-size:13px; color:var(--text-sub);
+}
+.demo-btn { font-size:13px; padding:9px 18px; }
+
+/* ── Player ────────────────────────────────────────────────────────────────── */
+.player-wrap {
+  position:relative; background:#000; min-height:0;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.video-el { width:100%; max-height:42vh; object-fit:contain; border:none; display:block; }
+iframe.video-el { height:42vh; }
+.seekbar-overlay { position:absolute; bottom:0; left:0; right:0; height:5px; }
+
+/* ── Transcript ─────────────────────────────────────────────────────────────── */
+.transcript-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.transcript-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+  font-size:11px; color:var(--text-sub);
+}
+.sticky-toggle { display:flex; align-items:center; gap:5px; cursor:pointer; }
+.transcript-panel {
+  overflow-y:auto; flex:1; padding:6px 0; display:flex;
+  flex-direction:column; gap:1px;
+}
+.transcript-seg {
+  display:flex; gap:10px; padding:6px 12px; border-radius:4px;
+  cursor:pointer; border:1px solid transparent; transition:background .1s;
+}
+.transcript-seg:hover { background:var(--surface2); }
+.transcript-seg.active { background:var(--accent-dim); border-color:rgba(124,92,255,.22); }
+.ts { font-size:10px; color:var(--accent); font-weight:700; white-space:nowrap; padding-top:3px; }
+.seg-text { font-size:13px; line-height:1.55; }
+.kw-mark {
+  background:rgba(124,92,255,.2); color:var(--accent); border-radius:2px;
+  cursor:pointer; padding:0 2px; text-decoration:underline;
+  text-underline-offset:2px; transition:background .1s;
+}
+.kw-mark:hover { background:rgba(124,92,255,.4); }
+
+/* Transcript loading */
+.transcript-loading {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; padding:24px;
+}
+.transcript-loading p { font-size:13px; color:var(--text-sub); }
+.progress-bar { width:200px; height:4px; background:var(--surface2); border-radius:2px; }
+.progress-fill { height:100%; background:var(--accent); border-radius:2px; transition:width .3s; width:0; }
+
+/* Spinner */
+.spinner {
+  width:26px; height:26px; border:3px solid var(--border2);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Bin prompt ─────────────────────────────────────────────────────────────── */
+.bin-prompt {
+  background:var(--surface); border-top:2px solid var(--accent);
+  padding:14px 16px; display:flex; flex-direction:column; gap:9px;
+  flex-shrink:0;
+}
+.bin-prompt-header { display:flex; justify-content:space-between; align-items:center; }
+.bin-prompt-idx { font-size:10px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; }
+.btn-dismiss {
+  background:none; border:none; color:var(--text-sub);
+  font-size:16px; padding:2px 4px; line-height:1;
+}
+.btn-dismiss:hover { color:var(--text); }
+.bin-prompt-concept { font-size:16px; font-weight:700; }
+.bin-prompt-q { font-size:12px; color:var(--text-sub); line-height:1.5; }
+.bin-prompt-area {
+  background:var(--bg); border:1px solid var(--border2); border-radius:6px;
+  color:var(--text); padding:9px 10px; font-size:13px; resize:none; width:100%;
+  line-height:1.5;
+}
+.bin-prompt-area:focus { outline:none; border-color:var(--accent); }
+.bin-prompt-hint { font-size:11px; color:var(--text-dim); }
+.bin-prompt-actions { display:flex; flex-direction:column; gap:5px; }
+.btn-fill { background:var(--accent); color:#fff; border-color:transparent; font-weight:600; padding:9px; }
+.btn-fill:disabled { background:var(--surface3); color:var(--text-dim); border-color:transparent; cursor:default; }
+.btn-read { background:var(--surface2); color:var(--text); border:1px solid var(--border2); padding:8px; border-radius:6px; font-size:12px; }
+.btn-read:hover { border-color:var(--accent); }
+.btn-skip { background:none; border:none; color:var(--text-sub); font-size:11px; padding:4px; text-decoration:underline; }
+
+/* Sticky notes */
+.sticky-overlay { position:absolute; bottom:50px; left:14px; z-index:10; max-width:260px; animation:slideInUp .2s ease; }
+@keyframes slideInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.sticky-note { background:#fef3c7; color:#1c1917; border-radius:6px; padding:10px 12px; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+.sticky-header { display:flex; justify-content:space-between; margin-bottom:5px; }
+.sticky-ts { font-weight:700; font-size:11px; color:#78350f; }
+.sticky-counter { font-size:11px; color:#92400e; }
+.sticky-text { font-size:13px; line-height:1.4; }
+
+/* Timeline pips */
+.timeline-pip {
+  position:absolute; top:-4px; transform:translateX(-50%);
+  width:9px; height:9px; border-radius:50%;
+  background:#fef3c7; border:2px solid var(--amber);
+  cursor:pointer; padding:0;
+}
+
+/* ── Right sidebar ──────────────────────────────────────────────────────────── */
+.sidebar {
+  width:300px; display:flex; flex-direction:column; overflow-y:auto;
+  background:var(--surface); padding:12px 14px; gap:16px; flex-shrink:0;
+}
+
+/* ── Bins ───────────────────────────────────────────────────────────────────── */
+.bins-header { display:flex; justify-content:space-between; align-items:center; }
+.bins-title { font-size:11px; font-weight:700; color:var(--text-sub); text-transform:uppercase; letter-spacing:.5px; }
+.bins-pct { font-size:20px; font-weight:800; color:var(--accent); }
+.bins-sub { font-size:11px; color:var(--text-sub); margin-top:2px; }
+.gap-count { color:var(--amber); }
+
+.bins-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:3px; margin-top:8px; }
+.bin {
+  width:100%; aspect-ratio:1; border-radius:3px; border:none;
+  cursor:pointer; transition:transform .1s, outline .1s;
+  outline:2px solid transparent; outline-offset:1px;
+}
+.bin:hover { transform:scale(1.25); z-index:1; }
+.bin-empty    { background:#2a2a3a; }
+.bin-filled   { background:var(--green); }
+.bin-deferred { background:var(--amber); }
+.bin-active   { outline:2px solid var(--accent) !important; }
+.bins-empty-msg { font-size:12px; color:var(--text-sub); line-height:1.5; grid-column:1/-1; padding:4px 0; }
+
+.bins-legend { display:flex; gap:10px; font-size:10px; color:var(--text-sub); margin-top:4px; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:2px; margin-right:3px; vertical-align:middle; }
+.dot-filled   { background:var(--green); }
+.dot-deferred { background:var(--amber); }
+.dot-empty    { background:#2a2a3a; border:1px solid rgba(255,255,255,.15); }
+
+/* ── Notes ──────────────────────────────────────────────────────────────────── */
+.notes-section { display:flex; flex-direction:column; gap:8px; }
+.notes-header { display:flex; justify-content:space-between; align-items:center; }
+.notes-title { font-size:11px; font-weight:700; color:var(--text-sub); text-transform:uppercase; letter-spacing:.5px; }
+.notes-empty { font-size:12px; color:var(--text-sub); line-height:1.5; }
+.note-card {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:6px; padding:8px 10px; cursor:pointer;
+  display:flex; flex-direction:column; gap:3px;
+  transition:border-color .1s;
+}
+.note-card:hover { border-color:var(--accent); }
+.note-ts { font-size:10px; color:var(--accent); font-weight:700; }
+.note-text { font-size:12px; line-height:1.4; }
+
+/* ── Enrichment overlay ─────────────────────────────────────────────────────── */
+.enrich-overlay {
+  position:fixed; inset:0; z-index:200;
+  display:flex; justify-content:flex-end;
+  background:rgba(0,0,0,.45);
+}
+.enrich-sidebar {
+  width:min(420px,100vw); height:100%;
+  background:var(--surface); border-left:1px solid var(--border2);
+  display:flex; flex-direction:column;
+  box-shadow:-6px 0 32px rgba(0,0,0,.5);
+  animation:slideInRight .2s ease;
+}
+@keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
+
+.enrich-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.enrich-term { font-size:17px; font-weight:700; color:var(--accent); }
+.enrich-close { background:none; border:none; color:var(--text-sub); font-size:18px; padding:4px; }
+.enrich-close:hover { color:var(--text); }
+
+.enrich-loading {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:10px; padding:24px;
+  font-size:13px; color:var(--text-sub); text-align:center;
+}
+
+.enrich-body {
+  overflow-y:auto; flex:1; padding:16px 20px;
+  display:flex; flex-direction:column; gap:18px;
+}
+.enrich-section { display:flex; flex-direction:column; gap:7px; }
+.enrich-section-title {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.6px; color:var(--text-sub);
+  display:flex; align-items:center; gap:5px;
+}
+.ext-link { color:var(--accent); text-decoration:none; font-size:13px; }
+.ext-link:hover { text-decoration:underline; }
+.enrich-llm { font-size:13px; line-height:1.65; }
+.enrich-why { font-size:12px; color:var(--text-sub); line-height:1.55; margin-top:2px; }
+.enrich-wiki { font-size:12px; color:var(--text-sub); line-height:1.65; }
+.enrich-no-llm { font-size:12px; color:var(--text-sub); line-height:1.5;
+  background:var(--surface2); border-radius:6px; padding:9px 10px; }
+.enrich-empty { font-size:13px; color:var(--text-sub); }
+
+.arxiv-list { list-style:none; display:flex; flex-direction:column; gap:10px; }
+.arxiv-item {
+  background:var(--surface2); border-radius:6px; padding:9px 11px;
+  display:flex; flex-direction:column; gap:3px;
+}
+.arxiv-title { font-size:12px; font-weight:600; color:var(--accent); text-decoration:none; line-height:1.4; }
+.arxiv-title:hover { text-decoration:underline; }
+.arxiv-meta { font-size:10px; color:var(--text-sub); }
+
+.enrich-footer { padding-top:12px; border-top:1px solid var(--border); }
+.enrich-add-btn {
+  width:100%; background:var(--accent); color:#fff; border:none;
+  border-radius:8px; padding:11px; font-size:13px; font-weight:700;
+}
+.enrich-add-btn:hover { background:var(--accent-h); }
+
+/* ── Modal overlay ──────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.7);
+  display:flex; align-items:center; justify-content:center; z-index:300;
+}
+.modal {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:14px; width:90%; max-width:460px;
+  max-height:85vh; display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.modal-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.modal-header h2 { font-size:16px; font-weight:700; }
+.modal-body { overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:20px; }
+.modal-body section { display:flex; flex-direction:column; gap:8px; }
+.modal-body h3 { font-size:13px; font-weight:700; color:var(--accent); }
+.modal-body .desc { font-size:12px; color:var(--text-sub); line-height:1.6; }
+.modal-body label { font-size:11px; font-weight:600; color:var(--text-sub); }
+.text-input {
+  background:var(--bg); border:1px solid var(--border2); color:var(--text);
+  border-radius:6px; padding:8px 11px; font-size:13px; width:100%;
+}
+.text-input:focus { outline:none; border-color:var(--accent); }
+.saved-msg { font-size:12px; color:var(--green); font-weight:600; }
+
+/* ── Congrats overlay ───────────────────────────────────────────────────────── */
+.congrats-modal {
+  text-align:center; padding:36px 28px;
+  max-width:380px; align-items:center;
+  display:flex !important; flex-direction:column; gap:14px;
+  border-color:var(--accent);
+}
+.congrats-icon { font-size:56px; animation:pop .4s ease; }
+@keyframes pop { 0%{transform:scale(0)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
+.congrats-title { font-size:26px; font-weight:800; color:var(--accent); }
+.congrats-body { font-size:14px; color:var(--text-sub); line-height:1.5; }
+.stat-num { font-size:52px; font-weight:900; color:var(--green); line-height:1; }
+.stat-label { font-size:12px; color:var(--text-sub); margin-top:4px; }
+.congrats-actions { display:flex; flex-direction:column; gap:8px; width:100%; margin-top:6px; }
+.congrats-actions .btn { padding:11px; font-size:14px; width:100%; }
+
+/* ── Responsive (portrait / small) ─────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .body { flex-direction:column; }
+  .main-col { border-right:none; border-bottom:1px solid var(--border); }
+  .sidebar { width:100%; height:230px; flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; padding:10px 12px; gap:14px; flex-shrink:0; }
+  .bins-grid { grid-template-columns:repeat(10,1fr); }
+  .topbar-actions .btn-label { display:none; }
+  iframe.video-el, .video-el { max-height:30vh; height:30vh; }
+}
+@media (max-width: 380px) {
+  .logo sup { display:none; }
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <span class="logo">EpiBins<sup>β</sup></span>
+    <span class="session-title" id="sessionTitle">No video loaded</span>
+    <div class="topbar-actions">
+      <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Video</span></button>
+      <button class="btn" id="btnDemo">▶ Demo</button>
+      <button class="btn btn-accent" id="btnNextGap" disabled>Next gap →</button>
+      <button class="btn" id="btnExport" disabled>Export</button>
+      <button class="btn btn-icon" id="btnSettings" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+  <div class="body">
+
+    <!-- Main column -->
+    <main class="main-col" id="mainCol">
+
+      <!-- Video loader -->
+      <div id="videoLoader" style="overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:24px;">
+        <div class="vl-dropzone" id="dropzone">
+          <div class="vl-icon">📂</div>
+          <p class="vl-title">Upload a video or audio file</p>
+          <p class="vl-sub">MP4 · MOV · WebM · MKV · AVI · MP3 · M4A</p>
+          <p class="vl-sub dim">Drag &amp; drop or click to browse</p>
+          <input type="file" id="fileInput" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
+        </div>
+        <div class="vl-divider"><span>or paste a YouTube URL</span></div>
+        <div class="yt-row">
+          <input class="yt-input" type="url" id="ytInput" placeholder="https://youtube.com/watch?v=…" />
+          <button class="btn btn-accent" id="btnYT">Load</button>
+        </div>
+        <p class="vl-note">YouTube videos stream directly — no download. Auto-generated captions are used for keyword detection when available.</p>
+        <div class="vl-error" id="loadError" style="display:none"></div>
+        <div class="demo-banner">
+          <p>🎓 Try an interactive demo without uploading anything:</p>
+          <button class="btn btn-accent demo-btn" id="btnDemoTranscript">Load demo transcript</button>
+          <p style="font-size:11px;color:var(--text-dim)">Uses a sample deep-learning lecture. Click any highlighted keyword for Wikipedia + AI enrichment.</p>
+        </div>
+      </div>
+
+      <!-- Player -->
+      <div class="player-wrap" id="playerWrap" style="display:none">
+        <video class="video-el" id="videoEl" controls playsinline style="display:none"></video>
+        <iframe class="video-el" id="ytFrame" allowfullscreen style="display:none;border:none"></iframe>
+        <div class="sticky-overlay" id="stickyOverlay"></div>
+        <div class="seekbar-overlay" id="seekbarOverlay"></div>
+      </div>
+
+      <!-- Transcript loading -->
+      <div class="transcript-loading" id="transcriptLoading" style="display:none">
+        <div class="spinner"></div>
+        <p id="transcriptStage">Analyzing…</p>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <!-- Transcript panel -->
+      <div class="transcript-wrap" id="transcriptWrap" style="display:none">
+        <div class="transcript-toolbar">
+          <span id="transcriptVia" style="font-size:11px;color:var(--text-sub)"></span>
+          <label class="sticky-toggle" for="stickyToggle" style="font-size:11px;color:var(--text-sub)">
+            <input type="checkbox" id="stickyToggle" checked /> Show sticky notes
+          </label>
+        </div>
+        <div class="transcript-panel" id="transcriptPanel" role="log" aria-label="Transcript"></div>
+      </div>
+
+      <!-- Bin prompt -->
+      <div class="bin-prompt" id="binPrompt" style="display:none">
+        <div class="bin-prompt-header">
+          <span class="bin-prompt-idx" id="bpIdx">Bin #1</span>
+          <button class="btn-dismiss" id="bpDismiss" aria-label="Close">✕</button>
+        </div>
+        <h3 class="bin-prompt-concept" id="bpConcept"></h3>
+        <p class="bin-prompt-q">In your own words — what is this concept and why does it matter?</p>
+        <textarea class="bin-prompt-area" id="bpArea" rows="3" placeholder="Write at least 20 characters to unlock Fill…"></textarea>
+        <p class="bin-prompt-hint" id="bpHint"></p>
+        <div class="bin-prompt-actions">
+          <button class="btn btn-fill" id="bpFill" disabled>Fill this bin ✓</button>
+          <button class="btn-read" id="bpRead">Read about it first →</button>
+          <button class="btn-skip" id="bpSkip">Come back later</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Right sidebar -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Bins -->
+      <div class="bins-section">
+        <div class="bins-header">
+          <span class="bins-title">Knowledge Bins</span>
+          <span class="bins-pct" id="binsPct">0%</span>
+        </div>
+        <p class="bins-sub" id="binsSub">Load a video to detect concepts automatically.</p>
+        <div class="bins-grid" id="binsGrid">
+          <p class="bins-empty-msg">Keyword detection will populate your bins automatically.</p>
+        </div>
+        <div class="bins-legend">
+          <span><span class="dot dot-filled"></span>Filled</span>
+          <span><span class="dot dot-deferred"></span>Deferred</span>
+          <span><span class="dot dot-empty"></span>Empty</span>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="notes-section">
+        <div class="notes-header">
+          <span class="notes-title">Notes</span>
+          <button class="btn btn-sm" id="btnAddNote">+ Note</button>
+        </div>
+        <p class="notes-empty" id="notesEmpty">Press <kbd>N</kbd> while watching to add a timestamped note.</p>
+        <div id="notesList"></div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<!-- ── Enrichment sidebar ────────────────────────────────────────────────── -->
+<div class="enrich-overlay" id="enrichOverlay" style="display:none">
+  <div class="enrich-sidebar">
+    <div class="enrich-header">
+      <h2 class="enrich-term" id="enrichTermTitle"></h2>
+      <button class="enrich-close" id="enrichClose" aria-label="Close">✕</button>
+    </div>
+    <div class="enrich-loading" id="enrichLoading">
+      <div class="spinner"></div>
+      <p>Fetching Wikipedia, papers &amp; AI explanation…</p>
+    </div>
+    <div class="enrich-body" id="enrichBody" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ── Settings modal ───────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="settingsOverlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="btn-dismiss" id="settingsClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <section>
+        <h3>LLM Explanations</h3>
+        <p class="desc">Add an API key to get plain-English AI explanations alongside Wikipedia. Without a key, Wikipedia and arXiv still work for free.</p>
+        <label for="settingsKey">OpenAI API Key</label>
+        <input type="password" id="settingsKey" class="text-input" placeholder="sk-…" autocomplete="off" />
+        <label for="settingsModel">Model</label>
+        <select id="settingsModel" class="text-input">
+          <option value="gpt-4o-mini">GPT-4o mini (fast, cheap)</option>
+          <option value="gpt-4o">GPT-4o (best quality)</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku (fast)</option>
+        </select>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-accent" id="settingsSave">Save</button>
+          <span class="saved-msg" id="savedMsg" style="display:none">Saved ✓</span>
+        </div>
+      </section>
+      <section>
+        <h3>Keyboard Shortcuts</h3>
+        <p class="desc"><kbd>N</kbd> — add timestamped note &nbsp;·&nbsp; <kbd>Esc</kbd> — close panels</p>
+      </section>
+      <section>
+        <h3>Privacy</h3>
+        <p class="desc">Only keyword strings are sent to external APIs. Your video, audio, and notes never leave your device. Wikipedia and arXiv lookups require no account.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ── Congratulations overlay ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="congratsOverlay" style="display:none">
+  <div class="modal congrats-modal">
+    <div class="congrats-icon">🎉</div>
+    <h2 class="congrats-title">All bins filled!</h2>
+    <p class="congrats-body">You've closed every knowledge gap identified in this session. That's genuine mastery.</p>
+    <div>
+      <div class="stat-num" id="congratsNum">0</div>
+      <div class="stat-label">concepts learned</div>
+    </div>
+    <div class="congrats-actions">
+      <button class="btn btn-accent" id="congratsExport">Export knowledge map</button>
+      <button class="btn" id="congratsDismiss">Keep studying</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="hiddenFileInput" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
+
+<script>
+'use strict';
+
+/* ── Demo data ───────────────────────────────────────────────────────────── */
+
+const DEMO_TITLE = 'Introduction to Deep Learning';
+
+const DEMO_SEGMENTS = [
+  { s:0,     e:11000,  t:"Welcome to this introduction to deep learning. Today we'll explore how neural networks learn to recognize complex patterns." },
+  { s:12000, e:23000,  t:"The neural network was inspired by the biological structure of the human brain — layers of interconnected nodes processing signals." },
+  { s:24000, e:37000,  t:"Each node applies an activation function to decide how strongly to fire, gating what information flows to the next layer." },
+  { s:38000, e:51000,  t:"Training begins with a forward pass: data flows through the network and we compute a loss function to measure prediction error." },
+  { s:52000, e:64000,  t:"Backpropagation then calculates how each weight contributed to that error, using the chain rule to propagate gradients backwards." },
+  { s:65000, e:77000,  t:"Gradient descent nudges every weight slightly in the direction that reduces loss — the size of that nudge is the learning rate." },
+  { s:78000, e:91000,  t:"Overfitting occurs when a model memorises training data instead of generalising. Regularisation techniques like dropout help prevent this." },
+  { s:92000, e:104000, t:"Convolutional layers are tailor-made for images, detecting local features like edges and textures at multiple spatial scales." },
+  { s:105000,e:120000, t:"The transformer architecture, introduced in 2017, transformed natural language processing by replacing recurrent layers with attention mechanisms." },
+  { s:121000,e:134000, t:"An attention mechanism lets the model weigh how relevant every other token is when encoding a given position in the sequence." },
+  { s:135000,e:147000, t:"Embeddings project discrete tokens — words, pixels, audio frames — into dense continuous vectors that capture semantic relationships." },
+  { s:148000,e:161000, t:"Batch normalisation stabilises training by normalising layer activations, enabling much higher learning rates without divergence." },
+  { s:162000,e:175000, t:"Transfer learning fine-tunes a model pre-trained on millions of examples for a new task, dramatically reducing labelled data requirements." },
+  { s:176000,e:189000, t:"The number of epochs — complete passes through the training dataset — is a critical hyperparameter that affects convergence and overfitting." },
+  { s:190000,e:203000, t:"Stochastic gradient descent samples random mini-batches rather than the full dataset, making each update faster and injecting beneficial noise." },
+];
+
+const DEMO_KEYWORDS = [
+  'neural network','activation function','loss function','backpropagation',
+  'gradient descent','learning rate','overfitting','regularisation','dropout',
+  'convolutional layer','transformer','attention mechanism','embedding',
+  'batch normalisation','transfer learning','hyperparameter','epoch',
+  'stochastic gradient descent','deep learning','feature extraction',
+];
+
+const ARXIV_DEMO = {
+  'neural network': [
+    { title:'Deep Residual Learning for Image Recognition', authors:['He, K.','Zhang, X.'], year:2015, url:'https://arxiv.org/abs/1512.03385' },
+    { title:'ImageNet Classification with Deep CNNs', authors:['Krizhevsky, A.','Sutskever, I.'], year:2012, url:'https://arxiv.org/abs/1207.0580' },
+  ],
+  'transformer': [
+    { title:'Attention Is All You Need', authors:['Vaswani, A.','Shazeer, N.','Parmar, N.'], year:2017, url:'https://arxiv.org/abs/1706.03762' },
+    { title:'BERT: Pre-training of Deep Bidirectional Transformers', authors:['Devlin, J.'], year:2018, url:'https://arxiv.org/abs/1810.04805' },
+  ],
+  'attention mechanism': [
+    { title:'Attention Is All You Need', authors:['Vaswani, A.','Shazeer, N.'], year:2017, url:'https://arxiv.org/abs/1706.03762' },
+    { title:'Neural Machine Translation by Jointly Learning to Align', authors:['Bahdanau, D.'], year:2014, url:'https://arxiv.org/abs/1409.0473' },
+  ],
+  'backpropagation': [
+    { title:'Learning Representations by Back-Propagating Errors', authors:['Rumelhart, D.E.'], year:1986, url:'https://www.nature.com/articles/323533a0' },
+  ],
+  'gradient descent': [
+    { title:'Adam: A Method for Stochastic Optimization', authors:['Kingma, D.P.','Ba, J.'], year:2014, url:'https://arxiv.org/abs/1412.6980' },
+    { title:'An Overview of Gradient Descent Optimization Algorithms', authors:['Ruder, S.'], year:2016, url:'https://arxiv.org/abs/1609.04747' },
+  ],
+  'dropout': [
+    { title:'Dropout: A Simple Way to Prevent Neural Networks from Overfitting', authors:['Srivastava, N.'], year:2014, url:'https://jmlr.org/papers/v15/srivastava14a.html' },
+  ],
+  'batch normalisation': [
+    { title:'Batch Normalization: Accelerating Deep Network Training', authors:['Ioffe, S.','Szegedy, C.'], year:2015, url:'https://arxiv.org/abs/1502.03167' },
+  ],
+  'transfer learning': [
+    { title:'How transferable are features in deep neural networks?', authors:['Yosinski, J.'], year:2014, url:'https://arxiv.org/abs/1411.1792' },
+  ],
+  'deep learning': [
+    { title:'Deep Learning', authors:['LeCun, Y.','Bengio, Y.','Hinton, G.'], year:2015, url:'https://www.nature.com/articles/nature14539' },
+  ],
+};
+
+/* ── State ───────────────────────────────────────────────────────────────── */
+
+const S = {
+  segments: [], keywords: [], bins: [], binNotes: [],
+  activeBinIndex: null, notes: [], currentMs: 0, durationMs: 0,
+  stickyVisible: true, llmConfig: null, sessionTitle: 'No video loaded',
+  hasVideo: false, transcribed: false,
+};
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+
+const $ = id => document.getElementById(id);
+const show = (id, type='flex') => { const el=$(id); el.style.display=type; };
+const hide = id => { const el=$(id); el.style.display='none'; };
+
+function msToTs(ms) {
+  const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  const p=n=>String(n).padStart(2,'0');
+  return h>0?`${p(h)}:${p(m)}:${p(sec)}`:`${p(m)}:${p(sec)}`;
+}
+
+function esc(str='') {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function hlKw(text, kws) {
+  if (!kws.length) return esc(text);
+  const pat = new RegExp(`(${kws.map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')})`, 'gi');
+  return esc(text).replace(pat, m=>`<mark class="kw-mark" data-term="${esc(m.toLowerCase())}">${m}</mark>`);
+}
+
+/* ── Bins ────────────────────────────────────────────────────────────────── */
+
+function addConcepts(kws) {
+  const ex = new Set(S.bins.map(b=>b.concept.toLowerCase()));
+  const fresh = kws.filter(k=>!ex.has(k.toLowerCase())).slice(0, 100-S.bins.length);
+  const start = S.bins.length+1;
+  S.bins = [...S.bins, ...fresh.map((c,i)=>({ index:start+i, concept:c, state:'empty' }))];
+  renderBins(); updateBinStats(); updateNextGapBtn();
+}
+
+function renderBins() {
+  const grid = $('binsGrid');
+  if (!S.bins.length) {
+    grid.innerHTML = '<p class="bins-empty-msg">Load a video — concepts detected in the transcript populate your bins automatically.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  S.bins.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = `bin bin-${b.state}${S.activeBinIndex===b.index?' bin-active':''}`;
+    btn.title = `Bin ${b.index}: ${b.concept} (${b.state})`;
+    btn.dataset.idx = b.index;
+    btn.addEventListener('click', () => setActiveBin(b.index));
+    grid.appendChild(btn);
+  });
+}
+
+function updateBinStats() {
+  const filled   = S.bins.filter(b=>b.state==='filled').length;
+  const deferred = S.bins.filter(b=>b.state==='deferred').length;
+  const empty    = S.bins.filter(b=>b.state==='empty').length;
+  const total    = S.bins.length;
+  const pct      = total>0 ? Math.round(filled/total*100) : 0;
+  $('binsPct').textContent = pct+'%';
+  $('binsSub').innerHTML   = `${filled} filled · ${deferred} deferred · <span class="gap-count">${empty} gap${empty!==1?'s':''}</span>`;
+  $('btnExport').disabled  = total===0;
+  if (total>0 && filled===total) showCongrats();
+}
+
+function updateNextGapBtn() {
+  $('btnNextGap').disabled = !S.bins.some(b=>b.state==='empty');
+}
+
+function setActiveBin(idx) {
+  S.activeBinIndex = idx;
+  renderBins();
+  const bin = S.bins.find(b=>b.index===idx);
+  if (!bin) return;
+  $('bpIdx').textContent     = `Bin #${bin.index}`;
+  $('bpConcept').textContent = bin.concept;
+  $('bpArea').value          = '';
+  $('bpHint').textContent    = '';
+  $('bpFill').disabled       = true;
+  show('binPrompt', 'flex');
+  $('bpArea').focus();
+}
+
+function dismissBinPrompt() {
+  S.activeBinIndex = null;
+  hide('binPrompt');
+  renderBins();
+}
+
+function fillBin(idx, note) {
+  S.bins = S.bins.map(b=>b.index===idx?{...b,state:'filled'}:b);
+  const bin = S.bins.find(b=>b.index===idx);
+  S.binNotes.push({ binIndex:idx, concept:bin?.concept??'', note, filledAt:new Date().toISOString() });
+  S.activeBinIndex = null;
+  hide('binPrompt');
+  renderBins(); updateBinStats(); updateNextGapBtn();
+}
+
+function deferBin(idx) {
+  S.bins = S.bins.map(b=>b.index===idx?{...b,state:'deferred'}:b);
+  S.activeBinIndex = null;
+  hide('binPrompt');
+  renderBins(); updateBinStats(); updateNextGapBtn();
+}
+
+function nextGap() {
+  const gap = S.bins.find(b=>b.state==='empty');
+  if (gap) setActiveBin(gap.index);
+}
+
+/* ── Transcript ──────────────────────────────────────────────────────────── */
+
+function renderTranscript() {
+  const panel = $('transcriptPanel');
+  panel.innerHTML = S.segments.map(seg=>
+    `<div class="transcript-seg" data-s="${seg.s}" role="button" tabindex="0">
+       <span class="ts">${msToTs(seg.s)}</span>
+       <span class="seg-text">${hlKw(seg.t, S.keywords)}</span>
+     </div>`
+  ).join('');
+
+  panel.querySelectorAll('.transcript-seg').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('.kw-mark')) return;
+      seekTo(+el.dataset.s);
+    });
+    el.addEventListener('keydown', e => e.key==='Enter' && seekTo(+el.dataset.s));
+  });
+  panel.querySelectorAll('.kw-mark').forEach(m =>
+    m.addEventListener('click', e => { e.stopPropagation(); openEnrichment(m.dataset.term); })
+  );
+}
+
+function updateActiveSegment() {
+  document.querySelectorAll('.transcript-seg').forEach(el => {
+    const s = +el.dataset.s;
+    const seg = S.segments.find(g=>g.s===s);
+    el.classList.toggle('active', !!(seg && S.currentMs>=seg.s && S.currentMs<=seg.e));
+  });
+  const active = document.querySelector('.transcript-seg.active');
+  if (active) active.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+/* ── Video / loading ─────────────────────────────────────────────────────── */
+
+function simulateProgress(callback) {
+  hide('transcriptWrap'); hide('videoLoader');
+  show('transcriptLoading', 'flex');
+  const stages = [
+    {pct:15,msg:'Extracting audio…'},
+    {pct:40,msg:'Loading on-device Whisper model…'},
+    {pct:70,msg:'Transcribing…'},
+    {pct:90,msg:'Detecting keywords…'},
+    {pct:100,msg:'Building knowledge bins…'},
+  ];
+  let i=0;
+  function tick() {
+    if (i>=stages.length) { callback(); return; }
+    const {pct,msg}=stages[i++];
+    $('transcriptStage').textContent=msg;
+    $('progressFill').style.width=pct+'%';
+    setTimeout(tick, 550);
+  }
+  tick();
+}
+
+function loadContent(via) {
+  S.segments = DEMO_SEGMENTS; S.keywords = DEMO_KEYWORDS;
+  addConcepts(DEMO_KEYWORDS);
+  renderTranscript();
+  hide('transcriptLoading');
+  show('transcriptWrap','flex');
+  $('transcriptVia').textContent = `Transcript via ${via}`;
+  S.transcribed = true;
+}
+
+function handleFile(file) {
+  S.sessionTitle = file.name.replace(/\.[^.]+$/,'');
+  $('sessionTitle').textContent = S.sessionTitle;
+  const url = URL.createObjectURL(file);
+  const vid = $('videoEl');
+  vid.src = url; vid.style.display='block'; $('ytFrame').style.display='none';
+  show('playerWrap'); S.hasVideo=true;
+  vid.addEventListener('timeupdate', ()=>{ S.currentMs=Math.round(vid.currentTime*1000); tick(); });
+  vid.addEventListener('durationchange',()=>{ S.durationMs=Math.round(vid.duration*1000); renderPips(); });
+  simulateProgress(()=>loadContent('on-device Whisper'));
+}
+
+function handleYouTube(url) {
+  hide('loadError');
+  const m=url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+  if (!m) {
+    const el=$('loadError'); el.style.display='block';
+    el.textContent='Not a valid YouTube URL — try https://youtube.com/watch?v=xxxxx'; return;
+  }
+  const vid=m[1]; S.sessionTitle=`YouTube: ${vid}`;
+  $('sessionTitle').textContent = S.sessionTitle;
+  const fr=$('ytFrame');
+  fr.src=`https://www.youtube.com/embed/${vid}?enablejsapi=1&playsinline=1`;
+  fr.style.display='block'; $('videoEl').style.display='none';
+  show('playerWrap'); S.hasVideo=true;
+  simulateProgress(()=>loadContent('YouTube captions'));
+}
+
+/* ── Seek / timeline ─────────────────────────────────────────────────────── */
+
+function seekTo(ms) {
+  S.currentMs=ms;
+  const vid=$('videoEl');
+  if (vid.style.display!=='none') vid.currentTime=ms/1000;
+  updateActiveSegment(); updateSticky();
+}
+
+function renderPips() {
+  const ov=$('seekbarOverlay'); ov.innerHTML='';
+  if (!S.durationMs) return;
+  S.notes.forEach(n=>{
+    const pip=document.createElement('button');
+    pip.className='timeline-pip';
+    pip.style.left=(n.timestampMs/S.durationMs*100)+'%';
+    pip.title=`${msToTs(n.timestampMs)}: ${n.text.slice(0,40)}`;
+    pip.addEventListener('click',()=>seekTo(n.timestampMs));
+    ov.appendChild(pip);
+  });
+}
+
+/* ── Sticky notes ────────────────────────────────────────────────────────── */
+
+function updateSticky() {
+  const ov=$('stickyOverlay');
+  if (!S.stickyVisible) { ov.innerHTML=''; return; }
+  const nearby=S.notes.filter(n=>Math.abs(n.timestampMs-S.currentMs)<=2000);
+  if (!nearby.length) { ov.innerHTML=''; return; }
+  const n=nearby[0];
+  ov.innerHTML=`<div class="sticky-note">
+    <div class="sticky-header">
+      <span class="sticky-ts">${msToTs(n.timestampMs)}</span>
+      ${nearby.length>1?`<span class="sticky-counter">1/${nearby.length}</span>`:''}
+    </div>
+    <p class="sticky-text">${esc(n.text)}</p>
+  </div>`;
+}
+
+/* ── Per-frame tick (for local video) ───────────────────────────────────── */
+
+function tick() { updateActiveSegment(); updateSticky(); }
+
+/* ── Notes ───────────────────────────────────────────────────────────────── */
+
+function addNote(text) {
+  S.notes.push({ id:crypto.randomUUID(), timestampMs:S.currentMs, text });
+  renderNotes(); renderPips();
+}
+
+function renderNotes() {
+  $('notesEmpty').style.display = S.notes.length?'none':'';
+  const list=$('notesList');
+  list.innerHTML=S.notes.map((n,i)=>
+    `<div class="note-card" data-ts="${n.timestampMs}" role="button" tabindex="0">
+       <span class="note-ts">${msToTs(n.timestampMs)}</span>
+       <p class="note-text">${esc(n.text)}</p>
+     </div>`
+  ).join('');
+  list.querySelectorAll('.note-card').forEach(el=>
+    el.addEventListener('click',()=>seekTo(+el.dataset.ts))
+  );
+}
+
+/* ── Export ──────────────────────────────────────────────────────────────── */
+
+function exportMd() {
+  const filled=S.bins.filter(b=>b.state==='filled').length;
+  const lines=[
+    `# ${S.sessionTitle} — EpiBins Knowledge Map`,
+    ``,
+    `## Knowledge Bins (${filled}/${S.bins.length} filled)`,
+    ``,
+    ...S.binNotes.map(bn=>`### Bin ${bn.binIndex}: ${bn.concept}\n${bn.note}\n*Filled at ${bn.filledAt}*`),
+    ``,
+    `## Timestamped Notes`,
+    ``,
+    ...S.notes.map(n=>`**[${msToTs(n.timestampMs)}]** ${n.text}`),
+  ].join('\n');
+  const blob=new Blob([lines],{type:'text/markdown'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=S.sessionTitle.replace(/[^a-z0-9]/gi,'-')+'-epibins.md'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Congrats ────────────────────────────────────────────────────────────── */
+
+let _congratsShown=false;
+function showCongrats() {
+  if (_congratsShown) return; _congratsShown=true;
+  $('congratsNum').textContent=S.bins.length;
+  show('congratsOverlay');
+}
+
+/* ── Enrichment ──────────────────────────────────────────────────────────── */
+
+async function openEnrichment(term) {
+  S.enrichTerm=term;
+  $('enrichTermTitle').textContent=term;
+  show('enrichLoading','flex'); hide('enrichBody');
+  show('enrichOverlay');
+
+  try {
+    const [wikiRes, arxivRes, llmRes] = await Promise.allSettled([
+      fetchWiki(term),
+      Promise.resolve(getArxivDemo(term)),
+      S.llmConfig ? callLLM(term,S.llmConfig) : Promise.resolve(null),
+    ]);
+    const wiki  = wikiRes.status==='fulfilled'  ? wikiRes.value  : null;
+    const arxiv = arxivRes.status==='fulfilled' ? arxivRes.value : [];
+    const llm   = llmRes.status==='fulfilled'   ? llmRes.value   : null;
+    renderEnrichment(term,wiki,arxiv,llm);
+  } catch { renderEnrichment(term,null,[],null); }
+
+  hide('enrichLoading'); show('enrichBody');
+}
+
+async function fetchWiki(term) {
+  const encoded=encodeURIComponent(term.replace(/ /g,'_'));
+  const res=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encoded}`,
+    {headers:{Accept:'application/json'}});
+  if (!res.ok) return null;
+  const d=await res.json();
+  if (d.type==='disambiguation'||!d.extract) return null;
+  return { summary:d.extract.slice(0,600), url:d.content_urls?.desktop?.page??`https://en.wikipedia.org/wiki/${encoded}` };
+}
+
+function getArxivDemo(term) {
+  return ARXIV_DEMO[term.toLowerCase()] ?? [];
+}
+
+async function callLLM(term,cfg) {
+  const res=await fetch(`${cfg.baseUrl}/chat/completions`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${cfg.apiKey}`},
+    body:JSON.stringify({
+      model:cfg.model, max_tokens:250,
+      messages:[
+        {role:'system',content:'Explain the technical term in 2-3 plain-English sentences for a curious non-expert. Then one sentence on why it matters in practice. Respond ONLY with valid JSON: {"beginner":"...","whyItMatters":"..."}'},
+        {role:'user',content:term},
+      ],
+    }),
+  });
+  if (!res.ok) return null;
+  const d=await res.json();
+  const raw=d.choices?.[0]?.message?.content??'{}';
+  try { return JSON.parse(raw); } catch { return {beginner:raw,whyItMatters:''}; }
+}
+
+function renderEnrichment(term,wiki,arxiv,llm) {
+  let html='';
+
+  if (llm?.beginner) {
+    html+=`<section class="enrich-section">
+      <h3 class="enrich-section-title">Plain-English</h3>
+      <p class="enrich-llm">${esc(llm.beginner)}</p>
+      ${llm.whyItMatters?`<p class="enrich-why"><em>Why it matters:</em> ${esc(llm.whyItMatters)}</p>`:''}
+    </section>`;
+  } else if (!S.llmConfig) {
+    html+=`<section class="enrich-section">
+      <h3 class="enrich-section-title">Plain-English</h3>
+      <p class="enrich-no-llm">Add an OpenAI key in <strong>⚙ Settings</strong> to get AI explanations here. Wikipedia and arXiv are always free.</p>
+    </section>`;
+  }
+
+  if (wiki) {
+    html+=`<section class="enrich-section">
+      <h3 class="enrich-section-title">Wikipedia <a href="${esc(wiki.url)}" target="_blank" rel="noreferrer" class="ext-link">↗</a></h3>
+      <p class="enrich-wiki">${esc(wiki.summary)}</p>
+    </section>`;
+  }
+
+  if (!llm && !wiki && S.llmConfig) {
+    html+=`<p class="enrich-empty">Nothing found for "${esc(term)}" — try a more specific term.</p>`;
+  }
+
+  if (arxiv.length) {
+    html+=`<section class="enrich-section">
+      <h3 class="enrich-section-title">Key Papers</h3>
+      <ul class="arxiv-list">
+        ${arxiv.map(p=>`<li class="arxiv-item">
+          <a href="${esc(p.url)}" target="_blank" rel="noreferrer" class="arxiv-title">${esc(p.title)}</a>
+          <span class="arxiv-meta">${p.authors.slice(0,2).map(esc).join(', ')}${p.authors.length>2?' et al.':''} · ${p.year}</span>
+        </li>`).join('')}
+      </ul>
+    </section>`;
+  }
+
+  html+=`<div class="enrich-footer">
+    <button class="btn btn-accent enrich-add-btn" data-term="${esc(term)}">+ Add to knowledge bins</button>
+  </div>`;
+
+  const body=$('enrichBody');
+  body.innerHTML=html;
+  body.querySelector('.enrich-add-btn')?.addEventListener('click',e=>{
+    addConcepts([e.currentTarget.dataset.term]);
+    hide('enrichOverlay');
+  });
+}
+
+/* ── Settings ────────────────────────────────────────────────────────────── */
+
+function loadSettings() {
+  const key   = localStorage.getItem('epibins:key')??'';
+  const model = localStorage.getItem('epibins:model')?? 'gpt-4o-mini';
+  $('settingsKey').value=key; $('settingsModel').value=model;
+  if (key) S.llmConfig={apiKey:key,baseUrl:'https://api.openai.com/v1',model};
+}
+
+function saveSettings() {
+  const key=$('settingsKey').value.trim();
+  const model=$('settingsModel').value;
+  localStorage.setItem('epibins:key',key);
+  localStorage.setItem('epibins:model',model);
+  S.llmConfig=key?{apiKey:key,baseUrl:'https://api.openai.com/v1',model}:null;
+  const msg=$('savedMsg'); msg.style.display='inline';
+  setTimeout(()=>msg.style.display='none',2000);
+}
+
+/* ── Wiring ──────────────────────────────────────────────────────────────── */
+
+// Top bar
+$('btnNextGap').addEventListener('click',nextGap);
+$('btnExport').addEventListener('click',exportMd);
+$('btnSettings').addEventListener('click',()=>show('settingsOverlay'));
+$('btnLoadVideo').addEventListener('click',()=>$('hiddenFileInput').click());
+$('btnDemo').addEventListener('click',()=>{
+  S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
+  hide('videoLoader'); show('playerWrap');
+  $('videoEl').style.display='none'; $('ytFrame').style.display='none';
+  simulateProgress(()=>loadContent('demo data'));
+});
+
+// File drop
+const dz=$('dropzone');
+dz.addEventListener('click',()=>$('fileInput').click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragging');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragging'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+$('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
+$('hiddenFileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);});
+
+// YouTube
+$('btnYT').addEventListener('click',()=>handleYouTube($('ytInput').value.trim()));
+$('ytInput').addEventListener('keydown',e=>e.key==='Enter'&&handleYouTube($('ytInput').value.trim()));
+
+// Demo transcript (no video)
+$('btnDemoTranscript').addEventListener('click',()=>{
+  S.sessionTitle=DEMO_TITLE; $('sessionTitle').textContent=DEMO_TITLE;
+  hide('videoLoader'); hide('playerWrap');
+  simulateProgress(()=>loadContent('demo data'));
+});
+
+// Bin prompt
+$('bpArea').addEventListener('input',()=>{
+  const l=$('bpArea').value.trim().length;
+  $('bpFill').disabled=l<20;
+  $('bpHint').textContent=l<20?`${20-l} more characters needed`:'';
+});
+$('bpFill').addEventListener('click',()=>{if(S.activeBinIndex!==null)fillBin(S.activeBinIndex,$('bpArea').value.trim());});
+$('bpRead').addEventListener('click',()=>{const b=S.bins.find(b=>b.index===S.activeBinIndex);if(b)openEnrichment(b.concept.toLowerCase());});
+$('bpSkip').addEventListener('click',()=>{if(S.activeBinIndex!==null)deferBin(S.activeBinIndex);});
+$('bpDismiss').addEventListener('click',dismissBinPrompt);
+
+// Enrichment
+$('enrichClose').addEventListener('click',()=>hide('enrichOverlay'));
+$('enrichOverlay').addEventListener('click',e=>{if(e.target===$('enrichOverlay'))hide('enrichOverlay');});
+
+// Settings
+$('settingsClose').addEventListener('click',()=>hide('settingsOverlay'));
+$('settingsSave').addEventListener('click',saveSettings);
+$('settingsOverlay').addEventListener('click',e=>{if(e.target===$('settingsOverlay'))hide('settingsOverlay');});
+
+// Congrats
+$('congratsExport').addEventListener('click',()=>{exportMd();hide('congratsOverlay');});
+$('congratsDismiss').addEventListener('click',()=>hide('congratsOverlay'));
+
+// Notes
+$('stickyToggle').addEventListener('change',e=>{S.stickyVisible=e.target.checked;updateSticky();});
+$('btnAddNote').addEventListener('click',()=>{
+  const t=prompt(`Timestamped note at ${msToTs(S.currentMs)}:`);
+  if(t?.trim())addNote(t.trim());
+});
+
+// Keyboard
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  if(e.key==='n'||e.key==='N'){
+    e.preventDefault();
+    const t=prompt(`Note at ${msToTs(S.currentMs)}:`);
+    if(t?.trim())addNote(t.trim());
+  }
+  if(e.key==='Escape'){
+    if($('enrichOverlay').style.display!=='none')  hide('enrichOverlay');
+    else if($('settingsOverlay').style.display!=='none') hide('settingsOverlay');
+    else if($('congratsOverlay').style.display!=='none') hide('congratsOverlay');
+    else if($('binPrompt').style.display!=='none') dismissBinPrompt();
+  }
+});
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+loadSettings();
+renderBins();
+updateNextGapBtn();
+</script>
+</body>
+</html>
