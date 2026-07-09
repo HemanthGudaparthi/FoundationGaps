@@ -450,6 +450,49 @@ iframe.video-el { height:42vh; }
   .report-name-input { border:none !important; }
 }
 
+/* Speed control */
+.speed-bar { display:flex; align-items:center; gap:8px; padding:7px 12px; background:var(--surface2); border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap; }
+.speed-label { font-size:11px; color:var(--text-sub); flex-shrink:0; }
+.speed-btns { display:flex; gap:3px; }
+.speed-btn { background:var(--surface3); border:1px solid var(--border); color:var(--text-sub); border-radius:4px; padding:2px 7px; font-size:11px; cursor:pointer; transition:all .15s; font-family:inherit; }
+.speed-btn:hover { border-color:var(--accent); color:var(--text); }
+.speed-btn.speed-active { background:var(--accent); color:#fff; border-color:transparent; font-weight:600; }
+
+/* Inline note editor */
+.note-editor { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+.note-editor-ts { font-size:10px; color:var(--accent); font-family:monospace; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+.note-editor-area { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-size:12px; padding:6px 8px; resize:vertical; min-height:52px; font-family:inherit; }
+.note-editor-area:focus { outline:none; border-color:var(--accent); }
+.note-editor-actions { display:flex; gap:6px; margin-top:6px; }
+.note-card { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:7px 10px; cursor:pointer; transition:border-color .15s; margin-bottom:6px; }
+.note-card:hover { border-color:var(--accent); }
+.note-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+.note-ts { font-family:monospace; font-size:11px; color:var(--accent); }
+.note-del { font-size:11px; color:var(--text-dim); background:none; border:none; cursor:pointer; padding:1px 5px; border-radius:3px; line-height:1; }
+.note-del:hover { color:var(--red); background:rgba(239,68,68,.1); }
+.note-text { font-size:12px; color:var(--text-sub); line-height:1.4; margin:0; }
+.notes-count { font-size:11px; color:var(--text-dim); font-weight:400; }
+
+/* Session library */
+.library-modal { width:min(820px,96vw); max-height:88vh; }
+.sessions-table { width:100%; border-collapse:collapse; font-size:13px; }
+.sessions-table th { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border2); font-size:11px; font-weight:600; color:var(--text-sub); text-transform:uppercase; letter-spacing:.5px; }
+.sessions-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.sessions-table tr:last-child td { border-bottom:none; }
+.sessions-table tbody tr:hover td { background:var(--surface2); }
+.sess-title { font-weight:600; color:var(--text); font-size:13px; }
+.sess-date { font-size:11px; color:var(--text-dim); margin-top:2px; }
+.sess-bar-wrap { width:64px; height:5px; background:var(--surface3); border-radius:3px; display:inline-block; overflow:hidden; }
+.sess-bar-fill { height:100%; border-radius:3px; background:var(--green); }
+.sess-acts { display:flex; gap:5px; }
+.library-empty { text-align:center; padding:40px 20px; color:var(--text-sub); }
+.review-session-panel { padding:16px; overflow-y:auto; max-height:60vh; }
+.review-gap { background:var(--surface2); border-left:3px solid var(--accent); border-radius:0 6px 6px 0; padding:10px 12px; margin-bottom:10px; }
+.review-gap-hd { font-weight:600; font-size:13px; color:var(--accent); margin-bottom:4px; }
+.review-gap-note { font-size:12px; color:var(--text-sub); margin:0; }
+.review-note-row { display:flex; gap:10px; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.review-note-ts { font-family:monospace; color:var(--accent); flex-shrink:0; font-size:11px; }
+
 /* ── Responsive (portrait / small) ─────────────────────────────────────────── */
 @media (max-width: 680px) {
   .body { flex-direction:column; }
@@ -480,6 +523,7 @@ iframe.video-el { height:42vh; }
       <button class="btn btn-accent" id="btnNextGap" disabled>Next gap →</button>
       <button class="btn" id="btnReport" disabled title="View printable Knowledge Report">📋 <span class="btn-label">Report</span></button>
       <button class="btn" id="btnExport" disabled>Export</button>
+      <button class="btn btn-icon" id="btnLibrary" title="Session Library">📚</button>
       <button class="btn btn-icon" id="btnSettings" title="Settings">⚙</button>
     </div>
   </header>
@@ -578,6 +622,21 @@ iframe.video-el { height:42vh; }
         <div class="seekbar-overlay" id="seekbarOverlay"></div>
       </div>
 
+      <!-- Speed bar -->
+      <div class="speed-bar" id="speedBar" style="display:none">
+        <span class="speed-label">Speed</span>
+        <div class="speed-btns" id="speedBtns">
+          <button class="speed-btn" data-rate="0.25">0.25×</button>
+          <button class="speed-btn" data-rate="0.5">0.5×</button>
+          <button class="speed-btn" data-rate="0.75">0.75×</button>
+          <button class="speed-btn speed-active" data-rate="1">1×</button>
+          <button class="speed-btn" data-rate="1.25">1.25×</button>
+          <button class="speed-btn" data-rate="1.5">1.5×</button>
+          <button class="speed-btn" data-rate="2">2×</button>
+        </div>
+        <span style="font-size:10px;color:var(--text-dim);margin-left:auto">YouTube: use ⚙ in player</span>
+      </div>
+
       <!-- Transcript loading -->
       <div class="transcript-loading" id="transcriptLoading" style="display:none">
         <div class="spinner"></div>
@@ -638,10 +697,19 @@ iframe.video-el { height:42vh; }
       <!-- Notes -->
       <div class="notes-section">
         <div class="notes-header">
-          <span class="notes-title">Notes</span>
+          <span class="notes-title">Notes <span class="notes-count" id="notesCount"></span></span>
           <button class="btn btn-sm" id="btnAddNote">+ Note</button>
         </div>
-        <p class="notes-empty" id="notesEmpty">Press <kbd>N</kbd> while watching to add a timestamped note.</p>
+        <!-- Inline note editor -->
+        <div class="note-editor" id="noteEditor" style="display:none">
+          <div class="note-editor-ts"><span>📍</span><span id="noteEditorTs">0:00</span></div>
+          <textarea class="note-editor-area" id="noteEditorArea" rows="2" placeholder="Type your note here…"></textarea>
+          <div class="note-editor-actions">
+            <button class="btn btn-accent btn-sm" id="btnSaveNote">Save Note</button>
+            <button class="btn btn-sm" id="btnCancelNote">Cancel</button>
+          </div>
+        </div>
+        <p class="notes-empty" id="notesEmpty">Press <kbd>N</kbd> or click + Note to add a timestamped note.</p>
         <div id="notesList"></div>
       </div>
 
@@ -753,6 +821,30 @@ iframe.video-el { height:42vh; }
   </div>
 </div>
 
+<!-- ── Session Library overlay ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="libraryOverlay" style="display:none">
+  <div class="modal library-modal">
+    <div class="modal-header">
+      <h2>📚 Session Library</h2>
+      <button class="btn-dismiss" id="libraryClose">✕</button>
+    </div>
+    <div class="modal-body" id="libraryBody" style="padding:0">
+      <!-- rendered by showLibrary() -->
+    </div>
+  </div>
+</div>
+
+<!-- ── Session Review overlay ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="reviewOverlay" style="display:none">
+  <div class="modal library-modal">
+    <div class="modal-header">
+      <h2 id="reviewTitle">Session Review</h2>
+      <button class="btn-dismiss" id="reviewClose">✕</button>
+    </div>
+    <div class="review-session-panel" id="reviewPanel"></div>
+  </div>
+</div>
+
 <input type="file" id="hiddenFileInput" accept="video/*,audio/*,.mkv,.avi,.flv" style="display:none" />
 
 <!-- ── Footer ───────────────────────────────────────────────────────────── -->
@@ -850,6 +942,7 @@ const S = {
   activeBinIndex: null, notes: [], currentMs: 0, durationMs: 0,
   stickyVisible: true, llmConfig: null, sessionTitle: 'No video loaded',
   hasVideo: false, transcribed: false,
+  sessionId: null, sessionCreatedAt: null, playbackRate: 1,
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -866,6 +959,104 @@ function msToTs(ms) {
 
 function esc(str='') {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Session persistence ─────────────────────────────────────────────────── */
+
+function initSession(title) {
+  S.sessionId = crypto.randomUUID();
+  S.sessionCreatedAt = new Date().toISOString();
+}
+
+function getSessionStore() {
+  try { return JSON.parse(localStorage.getItem('foundationgaps:sessions')||'[]'); } catch { return []; }
+}
+
+function saveCurrentSession() {
+  if (!S.sessionId) return;
+  const all = getSessionStore().filter(s=>s.id!==S.sessionId);
+  const entry = {
+    id: S.sessionId,
+    title: S.sessionTitle,
+    createdAt: S.sessionCreatedAt,
+    updatedAt: new Date().toISOString(),
+    gapsClosed: S.binNotes.length,
+    totalGaps: S.bins.length,
+    noteCount: S.notes.length,
+    binNotes: S.binNotes,
+    notes: S.notes,
+    bins: S.bins,
+  };
+  all.unshift(entry);
+  localStorage.setItem('foundationgaps:sessions', JSON.stringify(all.slice(0,50)));
+}
+
+/* ── Session Library UI ──────────────────────────────────────────────────── */
+
+function showLibrary() {
+  renderLibrary();
+  show('libraryOverlay');
+}
+
+function renderLibrary() {
+  const sessions = getSessionStore();
+  const body = $('libraryBody');
+  if (!sessions.length) {
+    body.innerHTML = '<div class="library-empty"><p style="font-size:28px">📚</p><p>No saved sessions yet.</p><p style="font-size:12px;margin-top:6px">Sessions are saved automatically when you close or fill gaps.</p></div>';
+    return;
+  }
+  body.innerHTML = `<div style="overflow-x:auto"><table class="sessions-table">
+    <thead><tr>
+      <th>Session</th><th>Last Active</th><th>Progress</th><th>Notes</th><th></th>
+    </tr></thead>
+    <tbody>${sessions.map(s=>{
+      const pct = s.totalGaps > 0 ? Math.round(s.gapsClosed/s.totalGaps*100) : 0;
+      const date = new Date(s.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      return `<tr>
+        <td><div class="sess-title">${esc(s.title)}</div><div class="sess-date">${date}</div></td>
+        <td style="font-size:12px;color:var(--text-sub)">${date}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="sess-bar-wrap"><div class="sess-bar-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:12px;color:var(--text-sub)">${s.gapsClosed}/${s.totalGaps}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text-sub)">${s.noteCount}</td>
+        <td>
+          <div class="sess-acts">
+            <button class="btn btn-sm" onclick="reviewSession('${s.id}')">Review</button>
+            <button class="btn btn-sm" style="color:var(--red)" onclick="deleteSession('${s.id}')">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function reviewSession(id) {
+  const sessions = getSessionStore();
+  const s = sessions.find(x=>x.id===id);
+  if (!s) return;
+  $('reviewTitle').textContent = s.title;
+  let html = '';
+  if (s.binNotes?.length) {
+    html += `<h3 style="font-size:13px;font-weight:700;margin:0 0 10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px">Closed Gaps (${s.binNotes.length})</h3>`;
+    html += s.binNotes.map(bn=>`<div class="review-gap"><div class="review-gap-hd">Bin ${bn.binIndex}: ${esc(bn.concept)}</div><p class="review-gap-note">${esc(bn.note)}</p></div>`).join('');
+  }
+  if (s.notes?.length) {
+    html += `<h3 style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px">Video Notes (${s.notes.length})</h3>`;
+    html += s.notes.map(n=>`<div class="review-note-row"><span class="review-note-ts">[${msToTs(n.timestampMs)}]</span><span style="font-size:13px;color:var(--text)">${esc(n.text)}</span></div>`).join('');
+    html += `<p style="font-size:11px;color:var(--text-dim);margin-top:10px">Timestamps show when in the video each note was made — rewatch those moments to refresh your memory.</p>`;
+  }
+  if (!html) html = '<p style="color:var(--text-sub);font-size:14px">No gaps or notes in this session.</p>';
+  $('reviewPanel').innerHTML = html;
+  show('reviewOverlay');
+}
+
+function deleteSession(id) {
+  const all = getSessionStore().filter(s=>s.id!==id);
+  localStorage.setItem('foundationgaps:sessions', JSON.stringify(all));
+  renderLibrary();
 }
 
 function hlKw(text, kws) {
@@ -945,6 +1136,7 @@ function fillBin(idx, note) {
   S.activeBinIndex = null;
   hide('binPrompt');
   renderBins(); updateBinStats(); updateNextGapBtn();
+  saveCurrentSession();
 }
 
 function deferBin(idx) {
@@ -995,6 +1187,8 @@ function updateActiveSegment() {
 /* ── Navigation ──────────────────────────────────────────────────────────── */
 
 function goHome() {
+  // Save current session before resetting
+  saveCurrentSession();
   // Pause and clear any loaded video
   const vid=$('videoEl');
   if (!vid.paused) vid.pause();
@@ -1004,6 +1198,7 @@ function goHome() {
   // Reset layout
   show('videoLoader'); hide('playerWrap'); hide('noVideoBar');
   hide('transcriptWrap'); hide('transcriptLoading'); hide('binPrompt');
+  hide('speedBar');
   $('btnChangeVideo').style.display='none';
   // Reset session state (keep bins + notes from prior session)
   S.segments=[]; S.keywords=[]; S.hasVideo=false; S.transcribed=false;
@@ -1051,11 +1246,13 @@ function activateVideoElement() {
   hide('noVideoBar');
   show('playerWrap');
   $('btnChangeVideo').style.display='block';
+  show('speedBar');
 }
 
 function handleFile(file) {
   S.sessionTitle = file.name.replace(/\.[^.]+$/,'');
   $('sessionTitle').textContent = S.sessionTitle;
+  initSession(S.sessionTitle);
   const url = URL.createObjectURL(file);
   const vid = $('videoEl');
   vid.src = url; vid.style.display='block'; $('ytFrame').style.display='none';
@@ -1078,6 +1275,7 @@ function handleYouTube(url, errorElId='loadError') {
   }
   const vid=m[1]; S.sessionTitle=`YouTube: ${vid}`;
   $('sessionTitle').textContent = S.sessionTitle;
+  initSession(S.sessionTitle);
   const fr=$('ytFrame');
   fr.src=`https://www.youtube.com/embed/${vid}?enablejsapi=1&playsinline=1`;
   fr.style.display='block'; $('videoEl').style.display='none';
@@ -1135,20 +1333,64 @@ function tick() { updateActiveSegment(); updateSticky(); }
 function addNote(text) {
   S.notes.push({ id:crypto.randomUUID(), timestampMs:S.currentMs, text });
   renderNotes(); renderPips();
+  saveCurrentSession();
 }
 
 function renderNotes() {
   $('notesEmpty').style.display = S.notes.length?'none':'';
+  $('notesCount').textContent = S.notes.length ? `(${S.notes.length})` : '';
   const list=$('notesList');
-  list.innerHTML=S.notes.map((n,i)=>
-    `<div class="note-card" data-ts="${n.timestampMs}" role="button" tabindex="0">
-       <span class="note-ts">${msToTs(n.timestampMs)}</span>
+  list.innerHTML=S.notes.map(n=>
+    `<div class="note-card" data-ts="${n.timestampMs}" data-id="${n.id}" role="button" tabindex="0">
+       <div class="note-card-header">
+         <span class="note-ts">${msToTs(n.timestampMs)}</span>
+         <button class="note-del" data-id="${n.id}" title="Delete note">✕</button>
+       </div>
        <p class="note-text">${esc(n.text)}</p>
      </div>`
   ).join('');
-  list.querySelectorAll('.note-card').forEach(el=>
-    el.addEventListener('click',()=>seekTo(+el.dataset.ts))
+  list.querySelectorAll('.note-card').forEach(el=>{
+    el.addEventListener('click', e=>{
+      if(e.target.closest('.note-del')) return;
+      seekTo(+el.dataset.ts);
+    });
+  });
+  list.querySelectorAll('.note-del').forEach(btn=>
+    btn.addEventListener('click', e=>{ e.stopPropagation(); deleteNote(btn.dataset.id); })
   );
+}
+
+function deleteNote(id) {
+  S.notes = S.notes.filter(n=>n.id!==id);
+  renderNotes(); renderPips();
+  saveCurrentSession();
+}
+
+function focusNoteEditor() {
+  $('noteEditorTs').textContent = msToTs(S.currentMs);
+  $('noteEditorTs').dataset.ms = S.currentMs;
+  show('noteEditor', 'block');
+  $('noteEditorArea').focus();
+}
+
+function saveNoteEditor() {
+  const text = $('noteEditorArea').value.trim();
+  if (!text) return;
+  const ms = +($('noteEditorTs').dataset.ms || S.currentMs);
+  S.notes.push({ id:crypto.randomUUID(), timestampMs:ms, text });
+  $('noteEditorArea').value = '';
+  hide('noteEditor');
+  renderNotes(); renderPips();
+  saveCurrentSession();
+}
+
+function setSpeed(rate) {
+  S.playbackRate = rate;
+  const vid = $('videoEl');
+  if (vid) vid.playbackRate = rate;
+  document.querySelectorAll('.speed-btn').forEach(btn=>{
+    btn.classList.toggle('speed-active', +btn.dataset.rate === rate);
+  });
 }
 
 /* ── Export ──────────────────────────────────────────────────────────────── */
@@ -1235,7 +1477,7 @@ async function openEnrichment(term) {
   try {
     const [wikiRes, arxivRes, llmRes] = await Promise.allSettled([
       fetchWiki(term),
-      Promise.resolve(getArxivDemo(term)),
+      fetchArxiv(term),
       S.llmConfig ? callLLM(term,S.llmConfig) : Promise.resolve(null),
     ]);
     const wiki  = wikiRes.status==='fulfilled'  ? wikiRes.value  : null;
@@ -1259,6 +1501,27 @@ async function fetchWiki(term) {
 
 function getArxivDemo(term) {
   return ARXIV_DEMO[term.toLowerCase()] ?? [];
+}
+
+async function fetchArxiv(term) {
+  try {
+    const q = encodeURIComponent(term);
+    const url = `https://export.arxiv.org/api/query?search_query=all:${q}&max_results=4&sortBy=relevance&sortOrder=descending`;
+    const res = await fetch(url, {signal: AbortSignal.timeout(5000)});
+    if (!res.ok) return getArxivDemo(term);
+    const text = await res.text();
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const entries = [...xml.querySelectorAll('entry')];
+    if (!entries.length) return getArxivDemo(term);
+    return entries.map(e => ({
+      title: e.querySelector('title')?.textContent?.trim().replace(/\s+/g,' ') || '',
+      authors: [...e.querySelectorAll('author name')].map(a=>a.textContent?.trim()).slice(0,3),
+      year: new Date(e.querySelector('published')?.textContent||'').getFullYear()||'',
+      url: (e.querySelector('id')?.textContent?.trim()||'').replace('http://','https://'),
+    })).filter(p=>p.title&&p.url);
+  } catch {
+    return getArxivDemo(term);
+  }
 }
 
 async function callLLM(term,cfg) {
@@ -1483,10 +1746,7 @@ $('congratsDismiss').addEventListener('click',()=>hide('congratsOverlay'));
 
 // Notes
 $('stickyToggle').addEventListener('change',e=>{S.stickyVisible=e.target.checked;updateSticky();});
-$('btnAddNote').addEventListener('click',()=>{
-  const t=prompt(`Timestamped note at ${msToTs(S.currentMs)}:`);
-  if(t?.trim())addNote(t.trim());
-});
+$('btnAddNote').addEventListener('click', focusNoteEditor);
 
 // Keyboard
 document.addEventListener('keydown',e=>{
@@ -1494,16 +1754,36 @@ document.addEventListener('keydown',e=>{
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
   if(e.key==='n'||e.key==='N'){
     e.preventDefault();
-    const t=prompt(`Note at ${msToTs(S.currentMs)}:`);
-    if(t?.trim())addNote(t.trim());
+    focusNoteEditor();
   }
   if(e.key==='Escape'){
     if($('enrichOverlay').style.display!=='none')  hide('enrichOverlay');
     else if($('settingsOverlay').style.display!=='none') hide('settingsOverlay');
     else if($('reportOverlay').style.display!=='none') hide('reportOverlay');
     else if($('congratsOverlay').style.display!=='none') hide('congratsOverlay');
+    else if($('libraryOverlay').style.display!=='none') hide('libraryOverlay');
+    else if($('reviewOverlay').style.display!=='none') hide('reviewOverlay');
     else if($('binPrompt').style.display!=='none') dismissBinPrompt();
   }
+});
+
+// Session Library
+$('btnLibrary').addEventListener('click', showLibrary);
+$('libraryClose').addEventListener('click', ()=>hide('libraryOverlay'));
+$('reviewClose').addEventListener('click', ()=>hide('reviewOverlay'));
+
+// Speed control
+$('speedBtns').addEventListener('click', e=>{
+  const btn = e.target.closest('.speed-btn');
+  if (btn) setSpeed(+btn.dataset.rate);
+});
+
+// Inline note editor
+$('btnSaveNote').addEventListener('click', saveNoteEditor);
+$('btnCancelNote').addEventListener('click', ()=>{ hide('noteEditor'); $('noteEditorArea').value=''; });
+$('noteEditorArea').addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveNoteEditor();}
+  if(e.key==='Escape'){e.preventDefault();hide('noteEditor');$('noteEditorArea').value='';}
 });
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
