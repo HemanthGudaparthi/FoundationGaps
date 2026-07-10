@@ -31,11 +31,23 @@ FoundationGaps turns passive video-watching into active learning. It auto-detect
 
 ---
 
+## Open the website
+
+**Quickest way — no install, no account:**
+
+👉 **[https://hemanthgudaparthi.github.io/FoundationGaps/](https://hemanthgudaparthi.github.io/FoundationGaps/)**
+
+Click that link and the app opens instantly in your browser. Nothing to download or sign up for.
+
+> If you see an old version, do a hard refresh: **Cmd+Shift+R** on Mac · **Ctrl+Shift+R** on Windows/Linux
+
+---
+
 ## Use it — three ways, no account required
 
 | Option | How |
 |---|---|
-| **Browser (no install)** | Open **[hemanthgudaparthi.github.io/FoundationGaps](https://hemanthgudaparthi.github.io/FoundationGaps/)** — works immediately |
+| **Browser (no install)** | Click the link above — works immediately on any device |
 | **Download & run locally** | Click "💾 Download this page" inside the app — save `foundationgaps.html`, open it in any browser, works fully offline |
 | **Clone & self-host** | `git clone https://github.com/HemanthGudaparthi/FoundationGaps && cd FoundationGaps/docs && python3 -m http.server 8080` → open `localhost:8080` |
 
