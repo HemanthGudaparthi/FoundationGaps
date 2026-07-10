@@ -774,7 +774,13 @@ iframe.video-el { height:36vh; }
         </div>
         <!-- Inline note editor -->
         <div class="note-editor" id="noteEditor" style="display:none">
-          <div class="note-editor-ts"><span>📍</span><span id="noteEditorTs">0:00</span></div>
+          <div class="note-editor-ts">
+            <span>📍</span>
+            <input type="text" id="noteEditorTs" value="0:00" placeholder="0:00"
+              title="Type a timestamp (e.g. 1:30) or it auto-fills from the video"
+              style="width:52px;background:none;border:none;border-bottom:1px solid var(--border2);color:var(--accent);font-size:11px;font-weight:700;text-align:center;outline:none;cursor:text;padding:0 2px;font-family:inherit;" />
+            <span style="font-size:10px;color:var(--text-dim);margin-left:4px;">(editable)</span>
+          </div>
           <textarea class="note-editor-area" id="noteEditorArea" rows="2" placeholder="Type your note here…"></textarea>
           <div class="note-editor-actions">
             <button class="btn btn-accent btn-sm" id="btnSaveNote">Save Note</button>
@@ -1052,6 +1058,14 @@ function msToTs(ms) {
   const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
   const p=n=>String(n).padStart(2,'0');
   return h>0?`${p(h)}:${p(m)}:${p(sec)}`:`${p(m)}:${p(sec)}`;
+}
+
+function tsToMs(str) {
+  const parts = String(str).trim().split(':').map(s=>parseInt(s,10));
+  if (!parts.length || parts.some(isNaN)) return null;
+  if (parts.length===2) return (parts[0]*60+parts[1])*1000;
+  if (parts.length===3) return (parts[0]*3600+parts[1]*60+parts[2])*1000;
+  return null;
 }
 
 function esc(str='') {
@@ -1499,6 +1513,7 @@ function goHome() {
   vid.src=''; vid.style.display='none';
   const fr=$('ytFrame');
   fr.src='about:blank'; fr.style.display='none';
+  stopYtTimePoll();
   // Reset layout
   show('videoLoader'); hide('playerWrap'); hide('noVideoBar');
   hide('transcriptWrap'); hide('transcriptLoading'); hide('binPrompt');
@@ -1597,12 +1612,12 @@ function handleYouTube(url, errorElId='loadError') {
   S.hasVideo=true;
   activateVideoElement();
   hide('videoLoader');
-  // FIX 10: disable speed buttons for YouTube (setSpeed only affects hidden <video> element)
   document.querySelectorAll('.speed-btn').forEach(b => b.disabled = true);
   $('speedBar').querySelector('.speed-label').textContent = 'Speed';
   $('ytSpeedNote').style.display = 'inline';
   S.videoSource = 'youtube';
   S.youtubeId = vid;
+  fr.onload = () => startYtTimePoll();
   clearForNewVideo();
   runYouTubeTranscript(vid);
 }
@@ -1662,6 +1677,29 @@ function onVideoTick() {
   updateActiveSegment(); updateSticky();
   if (S.notes.length && Date.now()-_ntlTick>4000) { _ntlTick=Date.now(); renderNotesTimeline(); }
 }
+
+/* ── YouTube time polling ─────────────────────────────────────────────────── */
+let _ytPollId=null;
+function startYtTimePoll() {
+  clearInterval(_ytPollId);
+  _ytPollId = setInterval(()=>{
+    const fr=$('ytFrame');
+    if (fr&&fr.style.display!=='none'&&fr.contentWindow) {
+      fr.contentWindow.postMessage('{"event":"listening","id":1,"channel":"widget"}','*');
+    }
+  }, 1000);
+}
+function stopYtTimePoll() { clearInterval(_ytPollId); _ytPollId=null; }
+window.addEventListener('message', e=>{
+  if (!e.origin.includes('youtube.com')) return;
+  try {
+    const d=typeof e.data==='string'?JSON.parse(e.data):e.data;
+    if (d?.event==='infoDelivery'&&d?.info?.currentTime!=null) {
+      S.currentMs=Math.round(d.info.currentTime*1000);
+      onVideoTick();
+    }
+  } catch {}
+});
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
 
@@ -1730,7 +1768,9 @@ function startEditNote(id) {
       <div class="note-ts-row">
         <button class="note-ts-adj" data-delta="-30000">← 30s</button>
         <button class="note-ts-adj" data-delta="-5000">← 5s</button>
-        <span class="note-edit-ts" id="neTs_${id}">${msToTs(editMs)}</span>
+        <input type="text" class="note-edit-ts" id="neTs_${id}" value="${msToTs(editMs)}"
+          title="Type any timestamp e.g. 1:30"
+          style="width:52px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--accent);font-size:10px;font-weight:700;text-align:center;padding:2px 4px;outline:none;font-family:inherit;" />
         <button class="note-ts-adj" data-delta="5000">5s →</button>
         <button class="note-ts-adj" data-delta="30000">30s →</button>
         <button class="note-ts-adj" data-delta="0" style="margin-left:auto;color:var(--accent)">Now</button>
@@ -1741,14 +1781,19 @@ function startEditNote(id) {
         <button class="btn btn-sm note-cancel-edit" data-id="${id}">Cancel</button>
       </div>
     </div>`;
+  const tsInput = card.querySelector('.note-edit-ts');
+  tsInput.addEventListener('input', ()=>{
+    const parsed = tsToMs(tsInput.value);
+    if (parsed !== null) { editMs = parsed; card.dataset.editMs = editMs; }
+  });
+  tsInput.addEventListener('focus', e=>e.stopPropagation());
   card.querySelectorAll('.note-ts-adj').forEach(btn=>{
     btn.addEventListener('click', e=>{
       e.stopPropagation();
       const delta = +btn.dataset.delta;
       editMs = delta===0 ? S.currentMs : Math.max(0, editMs+delta);
       card.dataset.editMs = editMs;
-      const el = document.getElementById(`neTs_${id}`);
-      if (el) el.textContent = msToTs(editMs);
+      tsInput.value = msToTs(editMs);
     });
   });
   card.querySelector('.note-save-edit').addEventListener('click', e=>{
@@ -1756,7 +1801,8 @@ function startEditNote(id) {
     const area = card.querySelector('.note-edit-area');
     const txt = area.value.trim();
     if (!txt) { area.style.borderColor='var(--red)'; return; }
-    S.notes = S.notes.map(n=>n.id===id?{...n,timestampMs:+card.dataset.editMs,text:txt}:n);
+    const finalMs = tsToMs(tsInput.value) ?? +card.dataset.editMs;
+    S.notes = S.notes.map(n=>n.id===id?{...n,timestampMs:finalMs,text:txt}:n);
     renderNotes(); renderPips(); saveCurrentSession();
   });
   card.querySelector('.note-cancel-edit').addEventListener('click', e=>{
@@ -1792,8 +1838,7 @@ function deleteNote(id) {
 }
 
 function focusNoteEditor() {
-  $('noteEditorTs').textContent = msToTs(S.currentMs);
-  $('noteEditorTs').dataset.ms = S.currentMs;
+  $('noteEditorTs').value = msToTs(S.currentMs);
   show('noteEditor', 'block');
   $('noteEditorArea').focus();
 }
@@ -1801,12 +1846,12 @@ function focusNoteEditor() {
 function saveNoteEditor() {
   const text = $('noteEditorArea').value.trim();
   if (!text) {
-    // FIX 12: show visual hint when trying to save an empty note
     $('noteEditorArea').style.borderColor = 'var(--red)';
     setTimeout(() => $('noteEditorArea').style.borderColor = '', 1200);
     return;
   }
-  const ms = +($('noteEditorTs').dataset.ms || S.currentMs);
+  const parsed = tsToMs($('noteEditorTs').value);
+  const ms = parsed !== null ? parsed : S.currentMs;
   S.notes.push({ id:crypto.randomUUID(), timestampMs:ms, text });
   $('noteEditorArea').value = '';
   hide('noteEditor');
