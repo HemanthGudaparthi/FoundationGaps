@@ -150,8 +150,8 @@ kbd { background:var(--surface2); border:1px solid var(--border2); border-radius
   display:flex; align-items:center; justify-content:center;
   flex-shrink:0;
 }
-.video-el { width:100%; max-height:42vh; object-fit:contain; border:none; display:block; }
-iframe.video-el { height:42vh; }
+.video-el { width:100%; max-height:36vh; object-fit:contain; border:none; display:block; }
+iframe.video-el { height:36vh; }
 .seekbar-overlay { position:absolute; bottom:0; left:0; right:0; height:5px; }
 
 /* ── Transcript ─────────────────────────────────────────────────────────────── */
@@ -290,6 +290,28 @@ iframe.video-el { height:42vh; }
 .note-card:hover { border-color:var(--accent); }
 .note-ts { font-size:10px; color:var(--accent); font-weight:700; }
 .note-text { font-size:12px; line-height:1.4; }
+.note-card-btns { display:flex; gap:2px; }
+.note-edit { font-size:11px; color:var(--text-dim); background:none; border:none; cursor:pointer; padding:1px 5px; border-radius:3px; line-height:1; }
+.note-edit:hover { color:var(--accent); background:rgba(124,92,255,.1); }
+.note-edit-form { display:flex; flex-direction:column; gap:6px; }
+.note-ts-row { display:flex; align-items:center; gap:5px; margin-bottom:2px; }
+.note-ts-adj { font-size:10px; background:var(--surface); border:1px solid var(--border2); color:var(--text-sub); border-radius:4px; padding:2px 7px; cursor:pointer; white-space:nowrap; }
+.note-ts-adj:hover { border-color:var(--accent); color:var(--text); }
+.note-edit-ts { font-size:10px; color:var(--accent); font-weight:700; min-width:38px; text-align:center; }
+.note-edit-area { width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:5px; color:var(--text); padding:5px 8px; font-size:12px; resize:none; font-family:inherit; line-height:1.4; }
+.note-edit-area:focus { outline:none; border-color:var(--accent); }
+
+/* Notes timeline strip */
+#notesTimeline { flex-shrink:0; border-top:1px solid var(--border); background:var(--surface); overflow-x:auto; padding:8px 12px; min-height:52px; }
+#notesTimeline::-webkit-scrollbar { height:4px; }
+#notesTimeline::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+.ntl-inner { display:flex; gap:8px; align-items:flex-start; }
+.ntl-empty { font-size:11px; color:var(--text-dim); line-height:52px; }
+.ntl-card { flex-shrink:0; max-width:140px; background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:5px 8px; cursor:pointer; transition:border-color .15s; }
+.ntl-card:hover { border-color:var(--accent); }
+.ntl-card.ntl-active { border-color:var(--accent); background:var(--accent-dim); }
+.ntl-ts { font-size:9px; color:var(--accent); font-weight:700; margin-bottom:2px; }
+.ntl-text { font-size:11px; color:var(--text); line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 
 /* ── Enrichment overlay ─────────────────────────────────────────────────────── */
 .enrich-overlay {
@@ -643,6 +665,13 @@ iframe.video-el { height:42vh; }
         </div>
       </div>
 
+      <!-- Notes timeline strip (below video, shows when notes exist) -->
+      <div id="notesTimeline" style="display:none">
+        <div class="ntl-inner" id="notesTimelineInner">
+          <span class="ntl-empty">No notes yet — press N or click + Note above</span>
+        </div>
+      </div>
+
       <!-- Transcript loading -->
       <div class="transcript-loading" id="transcriptLoading" style="display:none">
         <div class="spinner"></div>
@@ -650,24 +679,26 @@ iframe.video-el { height:42vh; }
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       </div>
 
-      <!-- Transcript fallback: shown when auto-CC fetch fails -->
-      <div id="transcriptFallback" style="display:none;padding:20px;display:flex;flex-direction:column;gap:14px;">
-        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;">
-          <p style="font-size:14px;font-weight:700;color:var(--text);margin:0">Could not load CC automatically</p>
-          <p style="font-size:12px;color:var(--text-sub);margin:0">YouTube blocks direct caption access from web apps. Paste the transcript below — takes about 10 seconds:</p>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text-sub);line-height:1.8">
-            <strong style="color:var(--text)">How to copy the transcript from YouTube:</strong><br>
-            1. Open the video on <strong>YouTube.com</strong> in another tab<br>
-            2. Click <strong>⋮</strong> (three dots) below the video<br>
-            3. Click <strong>Show transcript</strong><br>
-            4. Select all the text → Copy → Paste below
-          </div>
-          <textarea id="pasteTranscriptArea" rows="7"
-            placeholder="Paste YouTube transcript here…&#10;&#10;Example format:&#10;0:00&#10;Welcome to this video&#10;0:05&#10;Today we explore..."
-            style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+      <!-- Transcript / study area: shown when auto-CC unavailable -->
+      <div id="transcriptFallback" style="display:none;flex:1;overflow-y:auto;flex-direction:column;gap:12px;padding:14px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <p style="font-size:12px;font-weight:600;color:var(--text);margin:0">Paste transcript to enable keyword detection</p>
+          <textarea id="pasteTranscriptArea" rows="6"
+            placeholder="Paste transcript here (any format works)&#10;&#10;On YouTube: click ⋮ below video → Show transcript → select all → copy → paste here"
+            style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit;line-height:1.5;width:100%;"></textarea>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-accent" onclick="loadPastedTranscript()">Load transcript →</button>
-            <button class="btn" onclick="hide('transcriptFallback');loadContent('Demo data')">Use demo instead</button>
+            <button class="btn btn-accent btn-sm" onclick="loadPastedTranscript()">Load transcript →</button>
+            <button class="btn btn-sm" onclick="hide('transcriptFallback');loadContent('Demo data')">Use demo instead</button>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+          <p style="font-size:12px;font-weight:600;color:var(--text);margin:0">Or add concepts directly to your knowledge bins</p>
+          <p style="font-size:11px;color:var(--text-sub);margin:0">Type any concept you want to track — one at a time.</p>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="manualConceptInputFallback"
+              placeholder="e.g. gradient descent, attention mechanism…"
+              style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px;color:var(--text);font-family:inherit;" />
+            <button class="btn btn-sm btn-accent" onclick="addManualConceptFallback()" style="white-space:nowrap;">+ Add</button>
           </div>
         </div>
       </div>
@@ -1144,6 +1175,16 @@ function addManualConcept() {
   inp.focus();
 }
 
+function addManualConceptFallback() {
+  const inp = $('manualConceptInputFallback');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  addConcepts([val]);
+  inp.value = '';
+  inp.focus();
+}
+
 function extractKeywords(text) {
   const STOP = new Set([
     'about','after','again','also','another','any','are','been','before','being',
@@ -1571,8 +1612,17 @@ function handleYouTube(url, errorElId='loadError') {
 function seekTo(ms) {
   S.currentMs=ms;
   const vid=$('videoEl');
-  if (vid.style.display!=='none') vid.currentTime=ms/1000;
-  updateActiveSegment(); updateSticky();
+  if (vid.style.display!=='none') {
+    vid.currentTime=ms/1000;
+  } else {
+    const fr=$('ytFrame');
+    if (fr&&fr.style.display!=='none') {
+      fr.contentWindow?.postMessage(JSON.stringify({
+        event:'command', func:'seekTo', args:[ms/1000, true]
+      }),'https://www.youtube.com');
+    }
+  }
+  updateActiveSegment(); updateSticky(); renderNotesTimeline();
 }
 
 function renderPips() {
@@ -1607,7 +1657,11 @@ function updateSticky() {
 
 /* ── Per-frame tick (for local video) ───────────────────────────────────── */
 
-function onVideoTick() { updateActiveSegment(); updateSticky(); }
+let _ntlTick=0;
+function onVideoTick() {
+  updateActiveSegment(); updateSticky();
+  if (S.notes.length && Date.now()-_ntlTick>4000) { _ntlTick=Date.now(); renderNotesTimeline(); }
+}
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
 
@@ -1625,16 +1679,23 @@ function renderNotes() {
     `<div class="note-card" data-ts="${n.timestampMs}" data-id="${n.id}" role="button" tabindex="0">
        <div class="note-card-header">
          <span class="note-ts">${msToTs(n.timestampMs)}</span>
-         <button class="note-del" data-id="${n.id}" title="Delete note">✕</button>
+         <div class="note-card-btns">
+           <button class="note-edit" data-id="${n.id}" title="Edit note">✎</button>
+           <button class="note-del" data-id="${n.id}" title="Delete note">✕</button>
+         </div>
        </div>
        <p class="note-text">${esc(n.text)}</p>
      </div>`
   ).join('');
   list.querySelectorAll('.note-card').forEach(el=>{
     el.addEventListener('click', e=>{
-      if(e.target.closest('.note-del')) return;
+      if(e.target.closest('.note-del')||e.target.closest('.note-edit')) return;
       seekTo(+el.dataset.ts);
     });
+    el.addEventListener('keydown', e=>e.key==='Enter'&&seekTo(+el.dataset.ts));
+  });
+  list.querySelectorAll('.note-edit').forEach(btn=>{
+    btn.addEventListener('click', e=>{ e.stopPropagation(); startEditNote(btn.dataset.id); });
   });
   list.querySelectorAll('.note-del').forEach(btn=>{
     btn.addEventListener('click', e=>{
@@ -1654,6 +1715,74 @@ function renderNotes() {
       });
     });
   });
+  renderNotesTimeline();
+}
+
+function startEditNote(id) {
+  const note = S.notes.find(n=>n.id===id);
+  if (!note) return;
+  const card = document.querySelector(`.note-card[data-id="${id}"]`);
+  if (!card) return;
+  let editMs = note.timestampMs;
+  card.dataset.editMs = editMs;
+  card.innerHTML = `
+    <div class="note-edit-form">
+      <div class="note-ts-row">
+        <button class="note-ts-adj" data-delta="-30000">← 30s</button>
+        <button class="note-ts-adj" data-delta="-5000">← 5s</button>
+        <span class="note-edit-ts" id="neTs_${id}">${msToTs(editMs)}</span>
+        <button class="note-ts-adj" data-delta="5000">5s →</button>
+        <button class="note-ts-adj" data-delta="30000">30s →</button>
+        <button class="note-ts-adj" data-delta="0" style="margin-left:auto;color:var(--accent)">Now</button>
+      </div>
+      <textarea class="note-edit-area" rows="2">${esc(note.text)}</textarea>
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button class="btn btn-sm btn-accent note-save-edit" data-id="${id}">Save</button>
+        <button class="btn btn-sm note-cancel-edit" data-id="${id}">Cancel</button>
+      </div>
+    </div>`;
+  card.querySelectorAll('.note-ts-adj').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const delta = +btn.dataset.delta;
+      editMs = delta===0 ? S.currentMs : Math.max(0, editMs+delta);
+      card.dataset.editMs = editMs;
+      const el = document.getElementById(`neTs_${id}`);
+      if (el) el.textContent = msToTs(editMs);
+    });
+  });
+  card.querySelector('.note-save-edit').addEventListener('click', e=>{
+    e.stopPropagation();
+    const area = card.querySelector('.note-edit-area');
+    const txt = area.value.trim();
+    if (!txt) { area.style.borderColor='var(--red)'; return; }
+    S.notes = S.notes.map(n=>n.id===id?{...n,timestampMs:+card.dataset.editMs,text:txt}:n);
+    renderNotes(); renderPips(); saveCurrentSession();
+  });
+  card.querySelector('.note-cancel-edit').addEventListener('click', e=>{
+    e.stopPropagation(); renderNotes();
+  });
+  card.querySelector('.note-edit-area').focus();
+}
+
+function renderNotesTimeline() {
+  const tl=$('notesTimeline'), inner=$('notesTimelineInner');
+  if (!tl||!inner) return;
+  if (!S.notes.length) { tl.style.display='none'; return; }
+  tl.style.display='block';
+  const sorted=[...S.notes].sort((a,b)=>a.timestampMs-b.timestampMs);
+  inner.innerHTML=sorted.map(n=>{
+    const act=Math.abs(n.timestampMs-S.currentMs)<=3000;
+    return `<div class="ntl-card${act?' ntl-active':''}" data-ts="${n.timestampMs}" role="button" tabindex="0">
+      <div class="ntl-ts">${msToTs(n.timestampMs)}</div>
+      <div class="ntl-text">${esc(n.text)}</div>
+    </div>`;
+  }).join('');
+  inner.querySelectorAll('.ntl-card').forEach(el=>{
+    el.addEventListener('click',()=>seekTo(+el.dataset.ts));
+  });
+  const act=inner.querySelector('.ntl-active');
+  if (act) act.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
 }
 
 function deleteNote(id) {
@@ -2139,6 +2268,13 @@ $('btnCancelNote').addEventListener('click', ()=>{ hide('noteEditor'); $('noteEd
 $('noteEditorArea').addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveNoteEditor();}
   if(e.key==='Escape'){e.preventDefault();hide('noteEditor');$('noteEditorArea').value='';}
+});
+
+// Fallback concept input — Enter key
+document.addEventListener('keydown', e=>{
+  if (e.target && e.target.id==='manualConceptInputFallback' && e.key==='Enter') {
+    e.preventDefault(); addManualConceptFallback();
+  }
 });
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
