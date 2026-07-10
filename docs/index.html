@@ -519,7 +519,9 @@ iframe.video-el { height:42vh; }
     </div>
     <span class="session-title" id="sessionTitle">No video loaded</span>
     <div class="topbar-actions">
-      <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Video</span></button>
+      <span id="savedIndicator" style="font-size:11px;color:#22c55e;opacity:0;transition:opacity 0.4s;margin-right:4px;white-space:nowrap">✓ Saved</span>
+      <button class="btn" id="btnLoadVideo">📂 <span class="btn-label">Load Transcript</span></button>
+      <button class="btn" id="btnSaveSession" title="Save session now">💾 <span class="btn-label">Save</span></button>
       <button class="btn btn-accent" id="btnNextGap" disabled>Next gap →</button>
       <button class="btn" id="btnReport" disabled title="View printable Knowledge Report">📋 <span class="btn-label">Report</span></button>
       <button class="btn" id="btnExport" disabled>Export</button>
@@ -635,7 +637,10 @@ iframe.video-el { height:42vh; }
           <button class="speed-btn" data-rate="1.5">1.5×</button>
           <button class="speed-btn" data-rate="2">2×</button>
         </div>
-        <span style="font-size:10px;color:var(--text-dim);margin-left:auto">YouTube: use ⚙ in player</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <span id="ytSpeedNote" style="font-size:10px;color:var(--text-dim);display:none">YouTube: use ⚙ in player</span>
+          <button class="btn btn-sm" id="btnTranscribe" title="Re-run transcription on current video" style="font-size:11px;padding:3px 10px">⟳ Transcribe</button>
+        </div>
       </div>
 
       <!-- Transcript loading -->
@@ -649,9 +654,12 @@ iframe.video-el { height:42vh; }
       <div class="transcript-wrap" id="transcriptWrap" style="display:none">
         <div class="transcript-toolbar">
           <span id="transcriptVia" style="font-size:11px;color:var(--text-sub)"></span>
-          <label class="sticky-toggle" for="stickyToggle" style="font-size:11px;color:var(--text-sub)">
-            <input type="checkbox" id="stickyToggle" checked /> Show sticky notes
-          </label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-sm" onclick="retranscribe()" title="Reload transcript for current video" style="font-size:11px;padding:3px 8px;">↺ Reload</button>
+            <label class="sticky-toggle" for="stickyToggle" style="font-size:11px;color:var(--text-sub)">
+              <input type="checkbox" id="stickyToggle" checked /> Show sticky notes
+            </label>
+          </div>
         </div>
         <div class="transcript-panel" id="transcriptPanel" role="log" aria-label="Transcript"></div>
       </div>
@@ -966,8 +974,9 @@ const S = {
   segments: [], keywords: [], bins: [], binNotes: [],
   activeBinIndex: null, notes: [], currentMs: 0, durationMs: 0,
   stickyVisible: true, llmConfig: null, sessionTitle: 'No video loaded',
-  hasVideo: false, transcribed: false,
+  hasVideo: false, transcribed: false, videoSource: 'file',
   sessionId: null, sessionCreatedAt: null, playbackRate: 1,
+  youtubeId: null,
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -984,6 +993,97 @@ function msToTs(ms) {
 
 function esc(str='') {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── YouTube caption fetch ───────────────────────────────────────────────── */
+
+async function fetchYouTubeCaptions(videoId) {
+  const langs = ['en', 'en-US', 'en-GB', 'a.en'];
+  for (const lang of langs) {
+    try {
+      const res = await fetch(
+        `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      const events = data?.events ?? [];
+      const segs = [];
+      for (const ev of events) {
+        if (!ev.segs || !ev.tStartMs) continue;
+        const text = ev.segs.map(s => s.utf8 ?? '').join('').trim();
+        if (!text) continue;
+        segs.push({ s: ev.tStartMs, e: ev.tStartMs + (ev.dDurationMs ?? 2000), t: text });
+      }
+      if (segs.length > 0) return segs;
+    } catch {}
+  }
+  return null;
+}
+
+function extractKeywords(text) {
+  const STOP = new Set([
+    'about','after','again','also','another','any','are','been','before','being',
+    'between','both','but','could','does','doing','done','down','during','each',
+    'even','ever','every','from','further','gets','given','going','good','great',
+    'have','having','here','into','just','know','like','look','made','make','many',
+    'might','more','most','much','need','next','only','other','part','same','since',
+    'some','still','such','take','than','that','the','their','them','then','there',
+    'these','they','this','those','through','time','under','until','used','using',
+    'very','what','when','where','which','while','will','with','would','your',
+    'a','an','and','as','at','by','can','do','for','he','if','in','is','it',
+    'me','my','no','not','of','on','or','so','to','up','us','we',
+  ]);
+  const words = text.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !STOP.has(w));
+  const freq = {};
+  words.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+  const bigrams = {};
+  for (let i = 0; i < words.length - 1; i++) {
+    const bg = words[i] + ' ' + words[i + 1];
+    bigrams[bg] = (bigrams[bg] || 0) + 1;
+  }
+  const keepBigrams = Object.entries(bigrams)
+    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([w]) => w);
+  const bigramWords = new Set(keepBigrams.flatMap(bg => bg.split(' ')));
+  const keepWords = Object.entries(freq)
+    .filter(([w, c]) => c >= 2 && !bigramWords.has(w) && w.length > 4)
+    .sort((a, b) => b[1] - a[1]).slice(0, 15).map(([w]) => w);
+  return [...keepBigrams, ...keepWords].slice(0, 30);
+}
+
+function loadRealContent(segs, via) {
+  S.segments = segs;
+  const kws = extractKeywords(segs.map(s => s.t).join(' '));
+  S.keywords = kws;
+  addConcepts(kws);
+  renderTranscript();
+  hide('transcriptLoading');
+  show('transcriptWrap', 'flex');
+  $('transcriptVia').textContent = `Transcript via ${via} · ${segs.length} segments`;
+  S.transcribed = true;
+}
+
+async function runYouTubeTranscript(videoId) {
+  show('transcriptLoading', 'flex');
+  $('transcriptStage').textContent = 'Fetching YouTube captions…';
+  $('progressFill').style.width = '20%';
+  try {
+    const segs = await fetchYouTubeCaptions(videoId);
+    $('progressFill').style.width = '80%';
+    $('transcriptStage').textContent = 'Detecting keywords…';
+    await new Promise(r => setTimeout(r, 300));
+    if (segs && segs.length > 0) {
+      loadRealContent(segs, 'YouTube captions');
+    } else {
+      $('transcriptStage').textContent = 'No captions found for this video — loading demo…';
+      await new Promise(r => setTimeout(r, 800));
+      loadContent('Demo (no captions available for this video)');
+    }
+  } catch {
+    loadContent('Demo (captions unavailable)');
+  }
 }
 
 /* ── Session persistence ─────────────────────────────────────────────────── */
@@ -1017,6 +1117,8 @@ function saveCurrentSession() {
   all.unshift(entry);
   // FIX 9: wrap in try/catch to handle QuotaExceededError gracefully
   try { localStorage.setItem('foundationgaps:sessions', JSON.stringify(all.slice(0,50))); } catch(e) { console.warn('Session save failed:', e); }
+  const ind = $('savedIndicator');
+  if (ind) { ind.style.opacity = '1'; clearTimeout(ind._t); ind._t = setTimeout(() => { ind.style.opacity = '0'; }, 2000); }
 }
 
 /* ── Session Library UI ──────────────────────────────────────────────────── */
@@ -1306,8 +1408,10 @@ function handleFile(file) {
   // FIX 10: ensure speed buttons are enabled for file (local video)
   document.querySelectorAll('.speed-btn').forEach(b => b.disabled = false);
   $('speedBar').querySelector('.speed-label').textContent = 'Speed';
-  // If already transcribed (e.g. user adds video after loading demo), skip re-transcribe
-  if (!S.transcribed) simulateProgress(()=>loadContent('on-device Whisper'));
+  $('ytSpeedNote').style.display = 'none';
+  S.videoSource = 'file';
+  clearForNewVideo();
+  simulateProgress(()=>loadContent('on-device Whisper'));
 }
 
 function handleYouTube(url, errorElId='loadError') {
@@ -1328,8 +1432,12 @@ function handleYouTube(url, errorElId='loadError') {
   hide('videoLoader');
   // FIX 10: disable speed buttons for YouTube (setSpeed only affects hidden <video> element)
   document.querySelectorAll('.speed-btn').forEach(b => b.disabled = true);
-  $('speedBar').querySelector('.speed-label').textContent = 'Speed (use ⚙ in YouTube player)';
-  if (!S.transcribed) simulateProgress(()=>loadContent('YouTube captions'));
+  $('speedBar').querySelector('.speed-label').textContent = 'Speed';
+  $('ytSpeedNote').style.display = 'inline';
+  S.videoSource = 'youtube';
+  S.youtubeId = vid;
+  clearForNewVideo();
+  runYouTubeTranscript(vid);
 }
 
 /* ── Seek / timeline ─────────────────────────────────────────────────────── */
@@ -1402,14 +1510,29 @@ function renderNotes() {
       seekTo(+el.dataset.ts);
     });
   });
-  list.querySelectorAll('.note-del').forEach(btn=>
-    btn.addEventListener('click', e=>{ e.stopPropagation(); deleteNote(btn.dataset.id); })
-  );
+  list.querySelectorAll('.note-del').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const header = btn.closest('.note-card-header');
+      header.innerHTML = `
+        <span style="font-size:11px;color:var(--text-sub)">Delete this note?</span>
+        <span style="display:flex;gap:4px">
+          <button class="note-del-confirm" data-id="${btn.dataset.id}" style="font-size:11px;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:3px;padding:1px 8px;cursor:pointer">Yes, delete</button>
+          <button class="note-del-cancel" style="font-size:11px;color:var(--text-sub);background:none;border:1px solid var(--border2);border-radius:3px;padding:1px 8px;cursor:pointer">Keep</button>
+        </span>`;
+      header.querySelector('.note-del-confirm').addEventListener('click', e2=>{
+        e2.stopPropagation(); deleteNote(btn.dataset.id);
+      });
+      header.querySelector('.note-del-cancel').addEventListener('click', e2=>{
+        e2.stopPropagation(); renderNotes();
+      });
+    });
+  });
 }
 
 function deleteNote(id) {
   S.notes = S.notes.filter(n=>n.id!==id);
-  renderNotes(); renderPips();
+  renderNotes(); renderPips(); updateSticky();
   saveCurrentSession();
 }
 
@@ -1443,6 +1566,31 @@ function setSpeed(rate) {
   document.querySelectorAll('.speed-btn').forEach(btn=>{
     btn.classList.toggle('speed-active', +btn.dataset.rate === rate);
   });
+}
+
+function clearForNewVideo() {
+  S.transcribed = false;
+  S.segments = []; S.keywords = [];
+  S.bins = []; S.binNotes = []; S.notes = [];
+  S.activeBinIndex = null;
+  _congratsShown = false;
+  $('transcriptPanel').innerHTML = '';
+  $('notesList').innerHTML = '';
+  hide('transcriptWrap'); hide('binPrompt'); hide('congratsOverlay'); hide('noteEditor');
+  renderBins(); updateBinStats(); updateNextGapBtn(); renderNotes(); renderPips();
+}
+
+function retranscribe() {
+  if (!S.hasVideo) return;
+  S.transcribed = false;
+  S.segments = []; S.keywords = [];
+  $('transcriptPanel').innerHTML = '';
+  hide('transcriptWrap');
+  if (S.videoSource === 'youtube' && S.youtubeId) {
+    runYouTubeTranscript(S.youtubeId);
+  } else {
+    simulateProgress(() => loadContent('on-device Whisper'));
+  }
 }
 
 /* ── Export ──────────────────────────────────────────────────────────────── */
@@ -1726,7 +1874,8 @@ $('btnReport').addEventListener('click',showReport);
 $('reportClose').addEventListener('click',()=>hide('reportOverlay'));
 $('btnExport').addEventListener('click',exportMd);
 $('btnSettings').addEventListener('click',()=>show('settingsOverlay'));
-$('btnLoadVideo').addEventListener('click',()=>$('hiddenFileInput').click());
+$('btnLoadVideo').addEventListener('click',()=>{ saveCurrentSession(); goHome(); });
+$('btnSaveSession').addEventListener('click',()=>{ saveCurrentSession(); });
 
 // Change video chip (on player)
 $('btnChangeVideo').addEventListener('click',()=>{
@@ -1762,6 +1911,7 @@ $('btnDemoTranscript').addEventListener('click',()=>{
   hide('videoLoader');
   // Show the no-video bar so they can load a video at any time
   show('noVideoBar');
+  clearForNewVideo();
   simulateProgress(()=>loadContent('demo data'));
 });
 
@@ -1815,6 +1965,9 @@ $('btnDownloadSelf').addEventListener('click',()=>{
 $('congratsReport').addEventListener('click',()=>{hide('congratsOverlay');showReport();});
 $('congratsExport').addEventListener('click',()=>{exportMd();hide('congratsOverlay');});
 $('congratsDismiss').addEventListener('click',()=>hide('congratsOverlay'));
+
+// Transcribe button (always visible while video is loaded)
+$('btnTranscribe').addEventListener('click', retranscribe);
 
 // Notes
 $('stickyToggle').addEventListener('change',e=>{S.stickyVisible=e.target.checked;updateSticky();});

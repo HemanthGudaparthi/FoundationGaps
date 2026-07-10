@@ -72,8 +72,18 @@ export async function transcribeLocal(
 ): Promise<TranscriptSegment[]> {
   onProgress({ percent: 0, stage: "Loading Whisper model (first run: ~150 MB download)…" });
 
-  // Dynamic import so the ~150MB model only loads when transcription is requested
-  const { pipeline, env } = await import("@xenova/transformers");
+  // Dynamic import so the ~150MB model only loads when transcription is requested.
+  // @vite-ignore suppresses the "could not be resolved" scan warning when the
+  // package isn't installed yet; the real resolution happens at browser runtime.
+  let pipeline: any, env: any;
+  try {
+    ({ pipeline, env } = await import(/* @vite-ignore */ "@huggingface/transformers"));
+  } catch {
+    throw new Error(
+      "On-device Whisper requires @huggingface/transformers. " +
+      "Run: npm install @huggingface/transformers"
+    );
+  }
 
   // Cache the model in the browser's IndexedDB so it only downloads once
   env.allowLocalModels = false;

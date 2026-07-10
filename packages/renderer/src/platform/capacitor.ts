@@ -8,7 +8,7 @@ export class CapacitorPlatform implements Platform {
   constructor(public name: "capacitor-ios" | "capacitor-mac") {}
 
   async pickVideoFile(): Promise<FileMeta | null> {
-    const { FilePicker } = await import("@capawesome/capacitor-file-picker");
+    const { FilePicker } = await import(/* @vite-ignore */ "@capawesome/capacitor-file-picker");
     try {
       const result = await (FilePicker as any).pickFiles({
         types: ["public.movie", "public.mpeg-4", "com.apple.m4v-video"],
@@ -23,7 +23,7 @@ export class CapacitorPlatform implements Platform {
   }
 
   async pickPdfFile(): Promise<FileMeta | null> {
-    const { FilePicker } = await import("@capawesome/capacitor-file-picker");
+    const { FilePicker } = await import(/* @vite-ignore */ "@capawesome/capacitor-file-picker");
     try {
       const result = await (FilePicker as any).pickFiles({
         types: ["com.adobe.pdf"],
@@ -79,7 +79,7 @@ export class CapacitorPlatform implements Platform {
   }
 
   async shareText(filename: string, content: string): Promise<void> {
-    const { Share } = await import("@capacitor/share");
+    const { Share } = await import(/* @vite-ignore */ "@capacitor/share");
     const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
     // Write to temp file then share
     const path = `foundationgaps_export_${Date.now()}.md`;

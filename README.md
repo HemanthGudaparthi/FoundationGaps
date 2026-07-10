@@ -64,7 +64,7 @@ Wikipedia and arXiv enrichment work for free with no key. For AI explanations, a
 ### Transcription (priority order)
 1. **YouTube captions** — free, instant, no key needed
 2. **OpenAI Whisper API** — cloud, fast, requires OpenAI key
-3. **On-device Whisper** — via `@xenova/transformers` (ONNX); ~150 MB model cached in IndexedDB; fully private
+3. **On-device Whisper** — via `@huggingface/transformers` (ONNX); ~150 MB model cached in IndexedDB; fully private; no key needed
 
 ### Keyword detection (`packages/keyword-engine`)
 ```
@@ -171,6 +171,26 @@ cd FoundationGaps
 npm install
 npm run dev          # → http://localhost:5173
 ```
+
+Once the dev server is running, open your browser to **http://localhost:5173**.
+
+To open it directly from the terminal:
+
+```bash
+# macOS
+open http://localhost:5173
+
+# Linux
+xdg-open http://localhost:5173
+
+# Windows (PowerShell)
+start http://localhost:5173
+```
+
+> **Tip:** Run `npm run dev` and `open http://localhost:5173` together in one line:
+> ```bash
+> npm run dev & sleep 2 && open http://localhost:5173
+> ```
 
 ### iPad setup (Capacitor)
 
