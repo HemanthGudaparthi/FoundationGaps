@@ -15,9 +15,9 @@ export default defineConfig({
   ],
   // Serve docs/ using a pure-Node static server (no Python dependency)
   webServer: {
-    command: 'npx serve docs --listen 8765 --no-clipboard',
+    command: 'node server.js',
     url: 'http://localhost:8765',
     reuseExistingServer: !process.env.CI,
-    timeout: 15_000,
+    timeout: 30_000,
   },
 });

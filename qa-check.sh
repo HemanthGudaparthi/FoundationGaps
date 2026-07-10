@@ -22,7 +22,7 @@ log "Checking HTML file exists and is non-empty..."
 [ -s docs/index.html ] && ok "docs/index.html OK" || { err "docs/index.html missing or empty"; exit 1; }
 
 log "Checking required functions exist in HTML..."
-REQUIRED=(showLibrary saveCurrentSession focusNoteEditor setSpeed fetchArxiv showReport)
+REQUIRED=(showLibrary saveCurrentSession focusNoteEditor setSpeed fetchArxiv showReport retranscribe)
 MISSING=()
 for fn in "${REQUIRED[@]}"; do
   grep -q "function ${fn}" docs/index.html || MISSING+=("$fn")
@@ -33,7 +33,7 @@ fi
 ok "All required functions present"
 
 log "Checking no duplicate function definitions..."
-DUPES=$(grep -oP 'function \w+' docs/index.html | sort | uniq -d)
+DUPES=$(grep -oE 'function [a-zA-Z_][a-zA-Z0-9_]+\(' docs/index.html | grep -oE 'function [a-zA-Z_][a-zA-Z0-9_]+' | sort | uniq -d)
 if [ -n "$DUPES" ]; then
   err "Duplicate function definitions: $DUPES"
   exit 1

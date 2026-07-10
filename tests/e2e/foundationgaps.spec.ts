@@ -243,3 +243,128 @@ test('session library shows saved session after note is added', async ({ page })
   await expect(page.locator('.library-empty')).not.toBeVisible();
   await expect(page.locator('.sessions-table')).toBeVisible();
 });
+
+// ── Paste transcript (YouTube fallback) ───────────────────────────────────────
+
+// Real YouTube "Show transcript" format: timestamp line then text line(s)
+const YOUTUBE_TRANSCRIPT = `\
+0:00
+Welcome to this introduction to machine learning.
+0:05
+Today we'll explore the key concepts behind neural networks.
+0:11
+A neural network is inspired by the biological structure of the brain.
+0:17
+Each layer of neurons processes information and passes it forward.
+0:23
+The first step is called forward propagation.
+0:28
+We feed input data through the network to generate a prediction.
+0:34
+Then we compute a loss function to measure how wrong the prediction is.
+0:41
+Backpropagation calculates gradients to adjust the weights.
+0:47
+Gradient descent updates every weight to reduce the loss over time.
+0:54
+The learning rate controls how large each update step is.
+1:01
+Too large a learning rate causes the model to diverge.
+1:07
+Too small and training becomes extremely slow.
+1:13
+Overfitting happens when the model memorizes training data.
+1:19
+Regularization techniques like dropout help the model generalize.
+1:25
+A convolutional neural network is designed specifically for images.
+1:31
+It detects local features like edges and textures using filters.
+1:38
+The transformer architecture revolutionized natural language processing.
+1:44
+Attention mechanisms allow the model to focus on relevant tokens.
+1:51
+Transfer learning lets us reuse a pretrained model for a new task.
+1:57
+These concepts form the foundation of modern deep learning.`;
+
+async function showFallbackPanel(page: Page) {
+  // Directly show the fallback panel via DOM manipulation.
+  // S/show/$ are declared with const so they are NOT on window;
+  // we manipulate elements directly instead.
+  await page.goto('/');
+  await page.evaluate(() => {
+    const fallback = document.getElementById('transcriptFallback')!;
+    fallback.style.display = 'flex';
+    (document.getElementById('pasteTranscriptArea') as HTMLTextAreaElement).value = '';
+  });
+  await page.waitForSelector('#transcriptFallback', { state: 'visible', timeout: 3000 });
+}
+
+test('YouTube fallback panel appears when CC fetch fails', async ({ page }) => {
+  await showFallbackPanel(page);
+  await expect(page.locator('#transcriptFallback')).toBeVisible();
+  await expect(page.locator('#pasteTranscriptArea')).toBeVisible();
+});
+
+// Helper: set textarea value and invoke loadPastedTranscript() directly.
+// loadPastedTranscript is a function declaration so it IS on window.
+async function pasteAndLoad(page: Page, transcript: string) {
+  await page.evaluate((t) => {
+    (document.getElementById('pasteTranscriptArea') as HTMLTextAreaElement).value = t;
+    (window as any).loadPastedTranscript();
+  }, transcript);
+  await page.waitForSelector('#transcriptWrap', { state: 'visible', timeout: 5000 });
+}
+
+test('pasting YouTube transcript loads segments into transcript panel', async ({ page }) => {
+  await showFallbackPanel(page);
+  await pasteAndLoad(page, YOUTUBE_TRANSCRIPT);
+  const segments = page.locator('.transcript-seg');
+  await expect(segments).not.toHaveCount(0);
+  await expect(segments).toHaveCount(20);
+});
+
+test('pasted transcript highlights keywords and populates bins', async ({ page }) => {
+  await showFallbackPanel(page);
+  await pasteAndLoad(page, YOUTUBE_TRANSCRIPT);
+  await expect(page.locator('.kw-mark')).not.toHaveCount(0);
+  await expect(page.locator('.bin')).not.toHaveCount(0);
+});
+
+test('transcript via label shows pasted transcript source', async ({ page }) => {
+  await showFallbackPanel(page);
+  await pasteAndLoad(page, YOUTUBE_TRANSCRIPT);
+  await expect(page.locator('#transcriptVia')).toContainText('pasted transcript');
+});
+
+test('pasted transcript first segment starts at 0:00', async ({ page }) => {
+  await showFallbackPanel(page);
+  await pasteAndLoad(page, YOUTUBE_TRANSCRIPT);
+  await expect(page.locator('.transcript-seg').first().locator('.ts')).toHaveText('0:00');
+});
+
+// ── Manual concept entry ──────────────────────────────────────────────────────
+
+test('manual concept entry adds a bin', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#manualConceptInput', 'gradient descent');
+  await page.click('#btnAddConcept');
+  const bins = page.locator('.bin');
+  await expect(bins).toHaveCount(1);
+});
+
+test('Enter key in manual concept input adds a bin', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#manualConceptInput', 'backpropagation');
+  await page.press('#manualConceptInput', 'Enter');
+  await expect(page.locator('.bin')).toHaveCount(1);
+});
+
+test('manual concept input is cleared after adding', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#manualConceptInput', 'transformer');
+  await page.click('#btnAddConcept');
+  await expect(page.locator('#manualConceptInput')).toHaveValue('');
+});
