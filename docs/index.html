@@ -998,44 +998,72 @@ function esc(str='') {
 /* ── YouTube caption fetch ───────────────────────────────────────────────── */
 
 async function fetchYouTubeCaptions(videoId) {
-  // YouTube's timedtext API has no CORS headers so direct browser fetches are
-  // blocked. Try two free CORS proxies in sequence for resilience.
-  const PROXIES = [
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  ];
-  const langs = ['en', 'en-US', 'en-GB', 'a.en'];
+  // Strategy: fetch the YouTube watch page (via CORS proxy), pull the
+  // caption track URLs out of ytInitialPlayerResponse — exactly what the
+  // CC button uses — then fetch the actual caption data through the proxy.
 
-  async function parseSegs(raw) {
-    if (!raw) return null;
-    let data;
-    try { data = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return null; }
-    const events = data?.events ?? [];
-    const segs = [];
-    for (const ev of events) {
-      if (!ev.segs || !ev.tStartMs) continue;
-      const text = ev.segs.map(s => s.utf8 ?? '').join('').trim();
-      if (!text) continue;
-      segs.push({ s: ev.tStartMs, e: ev.tStartMs + (ev.dDurationMs ?? 2000), t: text });
-    }
-    return segs.length > 0 ? segs : null;
+  async function proxyText(url) {
+    // allorigins wraps the response body in {contents:"..."}
+    try {
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      if (r.ok) { const j = await r.json(); if (j?.contents) return j.contents; }
+    } catch {}
+    // corsproxy returns the raw body directly
+    try {
+      const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+      if (r.ok) return await r.text();
+    } catch {}
+    return null;
   }
 
-  for (const lang of langs) {
-    const ytUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`;
-    for (const proxy of PROXIES) {
-      try {
-        const res = await fetch(proxy(ytUrl));
-        if (!res.ok) continue;
-        const json = await res.json();
-        // allorigins wraps in { contents }, corsproxy returns the raw body
-        const raw = json?.contents ?? json;
-        const segs = await parseSegs(raw);
-        if (segs) return segs;
-      } catch {}
-    }
+  function parseJson3Segs(text) {
+    try {
+      const data = JSON.parse(text);
+      const segs = [];
+      for (const ev of (data?.events ?? [])) {
+        if (!ev.segs || !ev.tStartMs) continue;
+        const t = ev.segs.map(s => s.utf8 ?? '').join('').trim();
+        if (t) segs.push({ s: ev.tStartMs, e: ev.tStartMs + (ev.dDurationMs ?? 2000), t });
+      }
+      return segs.length ? segs : null;
+    } catch { return null; }
   }
-  return null;
+
+  // 1. Fetch the YouTube watch page
+  const html = await proxyText(`https://www.youtube.com/watch?v=${videoId}&hl=en`);
+  if (!html) return null;
+
+  // 2. Extract ytInitialPlayerResponse — the same JSON the CC button reads
+  let playerResponse;
+  try {
+    const marker = 'ytInitialPlayerResponse = ';
+    const idx = html.indexOf(marker);
+    if (idx === -1) return null;
+    const start = idx + marker.length;
+    let depth = 0, end = start;
+    for (; end < html.length; end++) {
+      if (html[end] === '{') depth++;
+      else if (html[end] === '}' && --depth === 0) break;
+    }
+    playerResponse = JSON.parse(html.slice(start, end + 1));
+  } catch { return null; }
+
+  // 3. Find the best English caption track (prefer auto-generated CC)
+  const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+  if (!tracks.length) return null;
+
+  const track =
+    tracks.find(t => t.languageCode === 'en' && t.kind === 'asr') ??  // auto-CC English
+    tracks.find(t => t.languageCode === 'en') ??                       // manual English
+    tracks.find(t => t.languageCode?.startsWith('en')) ??              // any English variant
+    tracks[0];                                                          // whatever is available
+
+  if (!track?.baseUrl) return null;
+
+  // 4. Fetch caption data in JSON3 format and parse
+  const captionUrl = track.baseUrl.replace(/\bfmt=[^&]*/,'') + '&fmt=json3';
+  const captionText = await proxyText(captionUrl);
+  return captionText ? parseJson3Segs(captionText) : null;
 }
 
 function extractKeywords(text) {
@@ -1085,7 +1113,7 @@ function loadRealContent(segs, via) {
 
 async function runYouTubeTranscript(videoId) {
   show('transcriptLoading', 'flex');
-  $('transcriptStage').textContent = 'Fetching YouTube captions…';
+  $('transcriptStage').textContent = 'Reading YouTube CC track…';
   $('progressFill').style.width = '20%';
   try {
     const segs = await fetchYouTubeCaptions(videoId);
