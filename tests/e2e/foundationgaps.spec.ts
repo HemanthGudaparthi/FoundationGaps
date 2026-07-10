@@ -166,6 +166,9 @@ test('deleting a note card removes it', async ({ page }) => {
   await page.click('#btnSaveNote');
   await expect(page.locator('.note-card')).toHaveCount(1);
   await page.click('.note-del');
+  // Confirm the inline delete confirmation dialog
+  await expect(page.locator('.note-del-confirm')).toBeVisible();
+  await page.click('.note-del-confirm');
   await expect(page.locator('.note-card')).toHaveCount(0);
 });
 
@@ -210,6 +213,21 @@ test('clicking home resets to the video loader', async ({ page }) => {
 });
 
 // ── Session persistence ───────────────────────────────────────────────────────
+
+test('Save button shows saved indicator', async ({ page }) => {
+  await page.goto('/');
+  await loadDemo(page);
+  await page.click('#btnSaveSession');
+  const ind = page.locator('#savedIndicator');
+  await expect(ind).toHaveCSS('opacity', '1');
+});
+
+test('Load Transcript button navigates back to video loader', async ({ page }) => {
+  await page.goto('/');
+  await loadDemo(page);
+  await page.click('#btnLoadVideo');
+  await expect(page.locator('#videoLoader')).toBeVisible();
+});
 
 test('session library shows saved session after note is added', async ({ page }) => {
   await page.goto('/');

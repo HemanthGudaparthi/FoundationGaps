@@ -998,24 +998,42 @@ function esc(str='') {
 /* ── YouTube caption fetch ───────────────────────────────────────────────── */
 
 async function fetchYouTubeCaptions(videoId) {
+  // YouTube's timedtext API has no CORS headers so direct browser fetches are
+  // blocked. Try two free CORS proxies in sequence for resilience.
+  const PROXIES = [
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  ];
   const langs = ['en', 'en-US', 'en-GB', 'a.en'];
+
+  async function parseSegs(raw) {
+    if (!raw) return null;
+    let data;
+    try { data = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return null; }
+    const events = data?.events ?? [];
+    const segs = [];
+    for (const ev of events) {
+      if (!ev.segs || !ev.tStartMs) continue;
+      const text = ev.segs.map(s => s.utf8 ?? '').join('').trim();
+      if (!text) continue;
+      segs.push({ s: ev.tStartMs, e: ev.tStartMs + (ev.dDurationMs ?? 2000), t: text });
+    }
+    return segs.length > 0 ? segs : null;
+  }
+
   for (const lang of langs) {
-    try {
-      const res = await fetch(
-        `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`
-      );
-      if (!res.ok) continue;
-      const data = await res.json();
-      const events = data?.events ?? [];
-      const segs = [];
-      for (const ev of events) {
-        if (!ev.segs || !ev.tStartMs) continue;
-        const text = ev.segs.map(s => s.utf8 ?? '').join('').trim();
-        if (!text) continue;
-        segs.push({ s: ev.tStartMs, e: ev.tStartMs + (ev.dDurationMs ?? 2000), t: text });
-      }
-      if (segs.length > 0) return segs;
-    } catch {}
+    const ytUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`;
+    for (const proxy of PROXIES) {
+      try {
+        const res = await fetch(proxy(ytUrl));
+        if (!res.ok) continue;
+        const json = await res.json();
+        // allorigins wraps in { contents }, corsproxy returns the raw body
+        const raw = json?.contents ?? json;
+        const segs = await parseSegs(raw);
+        if (segs) return segs;
+      } catch {}
+    }
   }
   return null;
 }
