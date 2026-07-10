@@ -650,6 +650,28 @@ iframe.video-el { height:42vh; }
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       </div>
 
+      <!-- Transcript fallback: shown when auto-CC fetch fails -->
+      <div id="transcriptFallback" style="display:none;padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;">
+          <p style="font-size:14px;font-weight:700;color:var(--text);margin:0">Could not load CC automatically</p>
+          <p style="font-size:12px;color:var(--text-sub);margin:0">YouTube blocks direct caption access from web apps. Paste the transcript below — takes about 10 seconds:</p>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text-sub);line-height:1.8">
+            <strong style="color:var(--text)">How to copy the transcript from YouTube:</strong><br>
+            1. Open the video on <strong>YouTube.com</strong> in another tab<br>
+            2. Click <strong>⋮</strong> (three dots) below the video<br>
+            3. Click <strong>Show transcript</strong><br>
+            4. Select all the text → Copy → Paste below
+          </div>
+          <textarea id="pasteTranscriptArea" rows="7"
+            placeholder="Paste YouTube transcript here…&#10;&#10;Example format:&#10;0:00&#10;Welcome to this video&#10;0:05&#10;Today we explore..."
+            style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--text);resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-accent" onclick="loadPastedTranscript()">Load transcript →</button>
+            <button class="btn" onclick="hide('transcriptFallback');loadContent('Demo data')">Use demo instead</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Transcript panel -->
       <div class="transcript-wrap" id="transcriptWrap" style="display:none">
         <div class="transcript-toolbar">
@@ -700,6 +722,16 @@ iframe.video-el { height:42vh; }
           <span><span class="dot dot-filled"></span>Filled</span>
           <span><span class="dot dot-deferred"></span>Deferred</span>
           <span><span class="dot dot-empty"></span>Empty</span>
+        </div>
+        <!-- Manual concept entry — always available -->
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
+          <p style="font-size:11px;font-weight:600;color:var(--text-sub);margin:0;">Add concept manually</p>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="manualConceptInput"
+              placeholder="e.g. gradient descent"
+              style="flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;" />
+            <button class="btn btn-sm btn-accent" id="btnAddConcept" style="white-space:nowrap;">+ Add</button>
+          </div>
         </div>
       </div>
 
@@ -1066,6 +1098,52 @@ async function fetchYouTubeCaptions(videoId) {
   return captionText ? parseJson3Segs(captionText) : null;
 }
 
+function parsePastedTranscript(raw) {
+  // Parses the text from YouTube's "Show transcript" panel.
+  // Format: timestamp line (0:00 or 0:00:00), then one or more text lines.
+  const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  const segs = [];
+  const tsRe = /^(\d+):(\d{2})(?::(\d{2}))?$/;
+  let i = 0;
+  while (i < lines.length) {
+    const m = lines[i].match(tsRe);
+    if (m) {
+      const hasH = m[3] !== undefined;
+      const h = hasH ? +m[1] : 0, mn = hasH ? +m[2] : +m[1], s = hasH ? +m[3] : +m[2];
+      const startMs = (h * 3600 + mn * 60 + s) * 1000;
+      i++;
+      const parts = [];
+      while (i < lines.length && !lines[i].match(tsRe)) { parts.push(lines[i]); i++; }
+      const txt = parts.join(' ').replace(/\[.*?\]/g, '').trim();
+      if (txt) segs.push({ s: startMs, e: startMs + 4000, t: txt });
+    } else { i++; }
+  }
+  // Fix end times so each segment ends when the next one starts
+  for (let j = 0; j < segs.length - 1; j++) segs[j].e = segs[j + 1].s;
+  return segs;
+}
+
+function loadPastedTranscript() {
+  const raw = $('pasteTranscriptArea').value.trim();
+  if (!raw) return;
+  const segs = parsePastedTranscript(raw);
+  if (!segs.length) {
+    alert('Could not parse transcript. Make sure you copied it directly from YouTube\'s "Show transcript" panel.');
+    return;
+  }
+  hide('transcriptFallback');
+  loadRealContent(segs, 'pasted transcript');
+}
+
+function addManualConcept() {
+  const inp = $('manualConceptInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  addConcepts([val]);
+  inp.value = '';
+  inp.focus();
+}
+
 function extractKeywords(text) {
   const STOP = new Set([
     'about','after','again','also','another','any','are','been','before','being',
@@ -1123,12 +1201,14 @@ async function runYouTubeTranscript(videoId) {
     if (segs && segs.length > 0) {
       loadRealContent(segs, 'YouTube captions');
     } else {
-      $('transcriptStage').textContent = 'No captions found for this video — loading demo…';
-      await new Promise(r => setTimeout(r, 800));
-      loadContent('Demo (no captions available for this video)');
+      hide('transcriptLoading');
+      $('pasteTranscriptArea').value = '';
+      show('transcriptFallback', 'flex');
     }
   } catch {
-    loadContent('Demo (captions unavailable)');
+    hide('transcriptLoading');
+    $('pasteTranscriptArea').value = '';
+    show('transcriptFallback', 'flex');
   }
 }
 
@@ -1622,7 +1702,7 @@ function clearForNewVideo() {
   _congratsShown = false;
   $('transcriptPanel').innerHTML = '';
   $('notesList').innerHTML = '';
-  hide('transcriptWrap'); hide('binPrompt'); hide('congratsOverlay'); hide('noteEditor');
+  hide('transcriptWrap'); hide('transcriptFallback'); hide('binPrompt'); hide('congratsOverlay'); hide('noteEditor');
   renderBins(); updateBinStats(); updateNextGapBtn(); renderNotes(); renderPips();
 }
 
@@ -1922,6 +2002,8 @@ $('btnExport').addEventListener('click',exportMd);
 $('btnSettings').addEventListener('click',()=>show('settingsOverlay'));
 $('btnLoadVideo').addEventListener('click',()=>{ saveCurrentSession(); goHome(); });
 $('btnSaveSession').addEventListener('click',()=>{ saveCurrentSession(); });
+$('btnAddConcept').addEventListener('click', addManualConcept);
+$('manualConceptInput').addEventListener('keydown', e => { if (e.key === 'Enter') addManualConcept(); });
 
 // Change video chip (on player)
 $('btnChangeVideo').addEventListener('click',()=>{
