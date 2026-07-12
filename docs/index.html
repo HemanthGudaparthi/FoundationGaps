@@ -301,6 +301,15 @@ iframe.video-el { height:36vh; }
 .note-edit-area { width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:5px; color:var(--text); padding:5px 8px; font-size:12px; resize:none; font-family:inherit; line-height:1.4; }
 .note-edit-area:focus { outline:none; border-color:var(--accent); }
 
+/* Resume bar */
+#resumeBar {
+  flex-shrink:0; display:none; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:9px 14px; background:rgba(124,92,255,.1);
+  border-bottom:1px solid rgba(124,92,255,.25);
+}
+.resume-label { font-size:12px; color:var(--text-sub); }
+.resume-time  { font-size:13px; font-weight:700; color:var(--accent); }
+
 /* Notes timeline strip */
 #notesTimeline { flex-shrink:0; border-top:1px solid var(--border); background:var(--surface); overflow-x:auto; padding:8px 12px; min-height:52px; }
 #notesTimeline::-webkit-scrollbar { height:4px; }
@@ -663,6 +672,14 @@ iframe.video-el { height:36vh; }
           <span id="ytSpeedNote" style="font-size:10px;color:var(--text-dim);display:none">YouTube: use ⚙ in player</span>
           <button class="btn btn-sm" id="btnTranscribe" title="Re-run transcription on current video" style="font-size:11px;padding:3px 10px">⟳ Transcribe</button>
         </div>
+      </div>
+
+      <!-- Resume bar: shown when a saved position is found for this video -->
+      <div id="resumeBar">
+        <span class="resume-label">Resume from where you left off?</span>
+        <span class="resume-time" id="resumeTime">0:00</span>
+        <button class="btn btn-accent btn-sm" id="btnResume">Resume →</button>
+        <button class="btn btn-sm" id="btnDismissResume">Start from beginning</button>
       </div>
 
       <!-- Notes timeline strip (below video, shows when notes exist) -->
@@ -1513,9 +1530,9 @@ function goHome() {
   vid.src=''; vid.style.display='none';
   const fr=$('ytFrame');
   fr.src='about:blank'; fr.style.display='none';
-  stopYtTimePoll();
+  stopYtTimePoll(); clearTimeout(_posSaveId); _posSaveId=null;
   // Reset layout
-  show('videoLoader'); hide('playerWrap'); hide('noVideoBar');
+  show('videoLoader'); hide('playerWrap'); hide('noVideoBar'); hide('resumeBar');
   hide('transcriptWrap'); hide('transcriptLoading'); hide('binPrompt');
   hide('speedBar');
   $('btnChangeVideo').style.display='none';
@@ -1585,7 +1602,7 @@ function handleFile(file) {
   activateVideoElement();
   hide('videoLoader');
   // FIX 2: use direct property assignment to prevent duplicate listener accumulation on re-upload
-  vid.ontimeupdate = () => { S.currentMs = Math.round(vid.currentTime * 1000); onVideoTick(); };
+  vid.ontimeupdate = () => { S.currentMs = Math.round(vid.currentTime * 1000); onVideoTick(); schedulePositionSave(); };
   vid.ondurationchange = () => { S.durationMs = Math.round(vid.duration * 1000); renderPips(); };
   // FIX 10: ensure speed buttons are enabled for file (local video)
   document.querySelectorAll('.speed-btn').forEach(b => b.disabled = false);
@@ -1593,6 +1610,7 @@ function handleFile(file) {
   $('ytSpeedNote').style.display = 'none';
   S.videoSource = 'file';
   clearForNewVideo();
+  vid.onloadedmetadata = () => checkResumePosition();
   simulateProgress(()=>loadContent('on-device Whisper'));
 }
 
@@ -1617,7 +1635,7 @@ function handleYouTube(url, errorElId='loadError') {
   $('ytSpeedNote').style.display = 'inline';
   S.videoSource = 'youtube';
   S.youtubeId = vid;
-  fr.onload = () => startYtTimePoll();
+  fr.onload = () => { startYtTimePoll(); checkResumePosition(); };
   clearForNewVideo();
   runYouTubeTranscript(vid);
 }
@@ -1678,6 +1696,48 @@ function onVideoTick() {
   if (S.notes.length && Date.now()-_ntlTick>4000) { _ntlTick=Date.now(); renderNotesTimeline(); }
 }
 
+/* ── Video position persistence (resume) ─────────────────────────────────── */
+
+function _posKey() {
+  return S.videoSource==='youtube'
+    ? `fg:pos:yt:${S.youtubeId}`
+    : `fg:pos:file:${S.sessionTitle}`;
+}
+
+function saveVideoPosition() {
+  if (!S.currentMs || S.currentMs < 8000) return;
+  try { localStorage.setItem(_posKey(), String(S.currentMs)); } catch {}
+}
+
+function getVideoPosition() {
+  try { const v=localStorage.getItem(_posKey()); return v ? +v : 0; } catch { return 0; }
+}
+
+function clearVideoPosition() {
+  try { localStorage.removeItem(_posKey()); } catch {}
+}
+
+let _posSaveId=null;
+function schedulePositionSave() {
+  if (_posSaveId) return;
+  _posSaveId = setTimeout(()=>{ saveVideoPosition(); _posSaveId=null; }, 5000);
+}
+
+function checkResumePosition() {
+  const ms = getVideoPosition();
+  if (ms > 8000) {
+    $('resumeTime').textContent = msToTs(ms);
+    $('resumeBar').dataset.ms = ms;
+    show('resumeBar', 'flex');
+  }
+}
+
+function doResume() {
+  const ms = +$('resumeBar').dataset.ms || 0;
+  hide('resumeBar');
+  if (ms) seekTo(ms);
+}
+
 /* ── YouTube time polling ─────────────────────────────────────────────────── */
 let _ytPollId=null;
 function startYtTimePoll() {
@@ -1696,7 +1756,7 @@ window.addEventListener('message', e=>{
     const d=typeof e.data==='string'?JSON.parse(e.data):e.data;
     if (d?.event==='infoDelivery'&&d?.info?.currentTime!=null) {
       S.currentMs=Math.round(d.info.currentTime*1000);
-      onVideoTick();
+      onVideoTick(); schedulePositionSave();
     }
   } catch {}
 });
@@ -1876,7 +1936,7 @@ function clearForNewVideo() {
   _congratsShown = false;
   $('transcriptPanel').innerHTML = '';
   $('notesList').innerHTML = '';
-  hide('transcriptWrap'); hide('transcriptFallback'); hide('binPrompt'); hide('congratsOverlay'); hide('noteEditor');
+  hide('transcriptWrap'); hide('transcriptFallback'); hide('binPrompt'); hide('congratsOverlay'); hide('noteEditor'); hide('resumeBar');
   renderBins(); updateBinStats(); updateNextGapBtn(); renderNotes(); renderPips();
 }
 
@@ -2314,6 +2374,10 @@ $('noteEditorArea').addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveNoteEditor();}
   if(e.key==='Escape'){e.preventDefault();hide('noteEditor');$('noteEditorArea').value='';}
 });
+
+// Resume bar
+$('btnResume').addEventListener('click', doResume);
+$('btnDismissResume').addEventListener('click', ()=>{ hide('resumeBar'); clearVideoPosition(); });
 
 // Fallback concept input — Enter key
 document.addEventListener('keydown', e=>{
