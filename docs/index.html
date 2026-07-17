@@ -1074,7 +1074,7 @@ const hide = id => { const el=$(id); el.style.display='none'; };
 function msToTs(ms) {
   const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
   const p=n=>String(n).padStart(2,'0');
-  return h>0?`${p(h)}:${p(m)}:${p(sec)}`:`${p(m)}:${p(sec)}`;
+  return h>0?`${h}:${p(m)}:${p(sec)}`:`${m}:${p(sec)}`;
 }
 
 function tsToMs(str) {
@@ -1194,6 +1194,8 @@ function loadPastedTranscript() {
     return;
   }
   hide('transcriptFallback');
+  hide('videoLoader');
+  if (!S.hasVideo) show('noVideoBar');
   loadRealContent(segs, 'pasted transcript');
 }
 

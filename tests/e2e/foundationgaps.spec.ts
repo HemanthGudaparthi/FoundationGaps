@@ -290,11 +290,11 @@ Transfer learning lets us reuse a pretrained model for a new task.
 These concepts form the foundation of modern deep learning.`;
 
 async function showFallbackPanel(page: Page) {
-  // Directly show the fallback panel via DOM manipulation.
-  // S/show/$ are declared with const so they are NOT on window;
-  // we manipulate elements directly instead.
+  // Simulate the state after a YouTube video loaded but CC fetch failed:
+  // videoLoader hidden, fallback panel visible.
   await page.goto('/');
   await page.evaluate(() => {
+    document.getElementById('videoLoader')!.style.display = 'none';
     const fallback = document.getElementById('transcriptFallback')!;
     fallback.style.display = 'flex';
     (document.getElementById('pasteTranscriptArea') as HTMLTextAreaElement).value = '';
