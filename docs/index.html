@@ -1311,9 +1311,14 @@ function saveCurrentSession() {
     binNotes: S.binNotes,
     notes: S.notes,
     bins: S.bins,
+    // Video state — enough to fully restore the session
+    videoSource: S.videoSource,
+    youtubeId: S.youtubeId || null,
+    currentMs: S.currentMs || 0,
+    segments: S.segments,
+    keywords: S.keywords,
   };
   all.unshift(entry);
-  // FIX 9: wrap in try/catch to handle QuotaExceededError gracefully
   try { localStorage.setItem('foundationgaps:sessions', JSON.stringify(all.slice(0,50))); } catch(e) { console.warn('Session save failed:', e); }
   const ind = $('savedIndicator');
   if (ind) { ind.style.opacity = '1'; clearTimeout(ind._t); ind._t = setTimeout(() => { ind.style.opacity = '0'; }, 2000); }
@@ -1335,15 +1340,20 @@ function renderLibrary() {
   }
   body.innerHTML = `<div style="overflow-x:auto"><table class="sessions-table">
     <thead><tr>
-      <th>Session</th><th>Last Active</th><th>Progress</th><th>Notes</th><th></th>
+      <th>Session</th><th>Last Active</th><th>Progress</th><th>Position</th><th></th>
     </tr></thead>
     <tbody>${sessions.map(s=>{
       const pct = s.totalGaps > 0 ? Math.round(s.gapsClosed/s.totalGaps*100) : 0;
-      // FIX 7: use separate dates for Session (created) and Last Active (updated)
       const createdDate = new Date(s.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       const updatedDate = new Date(s.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const hasVideo = s.videoSource==='youtube' && s.youtubeId;
+      const posLabel = s.currentMs > 0 ? msToTs(s.currentMs) : '—';
       return `<tr>
-        <td><div class="sess-title">${esc(s.title)}</div><div class="sess-date">${createdDate}</div></td>
+        <td>
+          <div class="sess-title">${esc(s.title)}</div>
+          <div class="sess-date">${createdDate}</div>
+          ${hasVideo ? `<div style="font-size:10px;color:var(--accent);margin-top:2px">▶ YouTube · ${s.segments?.length||0} segments</div>` : ''}
+        </td>
         <td style="font-size:12px;color:var(--text-sub)">${updatedDate}</td>
         <td>
           <div style="display:flex;align-items:center;gap:7px">
@@ -1351,9 +1361,10 @@ function renderLibrary() {
             <span style="font-size:12px;color:var(--text-sub)">${s.gapsClosed}/${s.totalGaps}</span>
           </div>
         </td>
-        <td style="font-size:12px;color:var(--text-sub)">${s.noteCount}</td>
+        <td style="font-size:12px;font-weight:700;color:${s.currentMs>0?'var(--accent)':'var(--text-dim)'}">${posLabel}</td>
         <td>
           <div class="sess-acts">
+            ${hasVideo ? `<button class="btn btn-sm btn-accent" onclick="resumeSession('${s.id}')">▶ Resume</button>` : ''}
             <button class="btn btn-sm" onclick="reviewSession('${s.id}')">Review</button>
             <button class="btn btn-sm" style="color:var(--red)" onclick="deleteSession('${s.id}')">✕</button>
           </div>
@@ -1385,9 +1396,76 @@ function reviewSession(id) {
 
 function deleteSession(id) {
   const all = getSessionStore().filter(s=>s.id!==id);
-  // FIX 9: wrap in try/catch to handle QuotaExceededError gracefully
   try { localStorage.setItem('foundationgaps:sessions', JSON.stringify(all)); } catch(e) { console.warn('Session save failed:', e); }
   renderLibrary();
+}
+
+function resumeSession(id) {
+  const s = getSessionStore().find(x=>x.id===id);
+  if (!s) return;
+  hide('libraryOverlay');
+
+  // Restore session identity
+  S.sessionId = s.id;
+  S.sessionTitle = s.title;
+  S.sessionCreatedAt = s.createdAt;
+  $('sessionTitle').textContent = s.title;
+
+  // Restore knowledge state
+  S.bins     = s.bins     || [];
+  S.binNotes = s.binNotes || [];
+  S.notes    = s.notes    || [];
+  S.segments = s.segments || [];
+  S.keywords = s.keywords || [];
+  S.currentMs = s.currentMs || 0;
+  S.transcribed = S.segments.length > 0;
+
+  // Re-render everything
+  renderBins(); updateBinStats(); updateNextGapBtn(); renderNotes(); renderPips();
+
+  // Restore transcript panel if we have segments
+  if (S.segments.length) {
+    renderTranscript();
+    $('transcriptVia').textContent = `Resumed · ${S.segments.length} segments`;
+    show('transcriptWrap', 'flex');
+  }
+
+  // Restore YouTube video and seek to saved position
+  if (s.videoSource === 'youtube' && s.youtubeId) {
+    S.videoSource = 'youtube';
+    S.youtubeId   = s.youtubeId;
+
+    hide('videoLoader');
+    const fr = $('ytFrame');
+    fr.src = `https://www.youtube.com/embed/${s.youtubeId}?enablejsapi=1&playsinline=1`;
+    fr.style.display = 'block';
+    $('videoEl').style.display = 'none';
+    S.hasVideo = true;
+    activateVideoElement();
+    document.querySelectorAll('.speed-btn').forEach(b=>b.disabled=true);
+    $('speedBar').querySelector('.speed-label').textContent = 'Speed';
+    $('ytSpeedNote').style.display = 'inline';
+
+    fr.onload = () => {
+      startYtTimePoll();
+      // Show resume bar so user can confirm before jumping
+      if (s.currentMs > 0) {
+        $('resumeTime').textContent = msToTs(s.currentMs);
+        $('resumeBar').dataset.ms = s.currentMs;
+        show('resumeBar', 'flex');
+      }
+    };
+  } else {
+    // Local file can't be restored cross-session — show loader so user can re-open file
+    show('videoLoader');
+    hide('playerWrap'); hide('speedBar');
+    S.hasVideo = false;
+    if (S.segments.length) {
+      // Transcript is restored; show the no-video bar so they can attach a file
+      hide('videoLoader');
+      show('noVideoBar');
+    }
+  }
 }
 
 function hlKw(text, kws) {
